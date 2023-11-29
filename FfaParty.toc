@@ -1,0 +1,8 @@
+## Interface: 11404
+## Version: 0.0.1
+## Title: FFA Party
+## Notes: Automatically sets FFA or group loot depending on your party members
+## Author: Cellv2
+
+main.lua
+options.lua
