@@ -1,5 +1,10 @@
-local name,addon=...;
-addon.myvar = "test"
+-- local name,addon=...;
+-- addon.myvar = "test"
+
+local MY_CHAR_NAME = "player"
+local MY_RAID_TARGET_INDEX = 1
+local OTHER_CHAR_NAME = "Addonmanager"
+local OTHER_RAID_TARGET_INDEX = 3
 
 
 local optedOut = GetOptOutOfLoot()
@@ -8,9 +13,6 @@ print(optedOut)
 
 
 local f = CreateFrame("Frame")
--- function f:GROUP_ROSTER_UPDATE(event, addonName)
---     print("thething")
--- end
 
 function f:OnEvent(event, ...)
     self[event](self, event, ...)
@@ -18,7 +20,7 @@ end
 
 function f:PLAYER_ENTERING_WORLD(event, isLogin, isReload)
     -- SetOptOutOfLoot(false)
-    print(event, isLogin, isReload)
+    -- print(event, isLogin, isReload)
 end
 
 
@@ -47,80 +49,28 @@ local function table_has_value (tab, val)
     return false
 end
 
+local function ensure_raid_target(unit, raidTargetIndex)
+    currentRaidTargetIndex = GetRaidTargetIndex(unit)
 
--- function f:GOSSIP_SHOW(event, addOnName)
---     local currentCharacterName = UnitName("player")
---     local allowedCharacterNames = { "Boboboy" }
---     -- local currentGroupCharacterNames = { currentCharacterName, "Boboboy", "123" }
---     local currentGroupCharacterNames = GetHomePartyInfo()
+    if currentRaidTargetIndex ~= raidTargetIndex then
+        SetRaidTarget(unit, raidTargetIndex)
+    end
+end
 
---     local inGroup = IsInGroup()
---     if inGroup ~= true then
---         -- print("No actions taken, not in group")
---         return
---     end
-    
---     local isLeader = UnitIsGroupLeader("player")
---     if isLeader ~= true then
---         -- print("No actions taken, not group leader")
---         return
---     end
+local function ensure_loot_method(lootMethod)
+    if GetLootMethod() ~= lootMethod then
+        print("Setting group loot")
+        SetLootMethod(lootMethod)
+    end
+end
 
---     -- for _, v in ipairs(currentGroupCharacterNames) do
---     --     print("groupCharName: ", v)
---     -- end
+function f:GOSSIP_SHOW(event, addOnName)
+    ensure_raid_target(MY_CHAR_NAME, MY_RAID_TARGET_INDEX)
+    ensure_raid_target(OTHER_CHAR_NAME, OTHER_RAID_TARGET_INDEX)
 
---     -- ensure_loot_type(LOOT_TYPE_FFA)
-
---     local disallowedCharacterInGroup = false
---     for _, v in pairs(currentGroupCharacterNames) do
---         if table_has_value(allowedCharacterNames, v) then
---             --
---         else
---             -- print("BAD TOYS", v)
---             disallowedCharacterInGroup = true
---             break
---         end
---     end
-
---     if disallowedCharacterInGroup then
---         local isInRaid = IsInRaid()
---         if isInRaid then
---             local currentLootMethod = GetLootMethod()
---             if currentLootMethod == LOOT_TYPE_FFA then
---                 print("In raid and loot type is FFA, you might want to switch to something else")
---                 -- print("In raid and loot type is FFA, switching to group loot")
---                 -- SetLootMethod(LOOT_TYPE_GROUP)
---             end
---         end
-
---         -- print("Found character in group which is not in allowed list")
---         -- print(allowedCharacterNames)
---         -- for _, v in ipairs(allowedCharacterNames) do
---         --     print("groupCharName: ", v)
---         -- end
-
---         if GetLootMethod() ~= LOOT_TYPE_GROUP then
---             print("Setting group loot")
---             SetLootMethod(LOOT_TYPE_GROUP)
---         end
---         return
---     end
-
---     -- print("All characters in group are on the allowed list")
---     if GetLootMethod() ~= LOOT_TYPE_FFA then
---         print("Setting FFA loot")
---         SetLootMethod(LOOT_TYPE_FFA)
---     end
-
---     -- print(currentCharacterName)
---     -- SetOptOutOfLoot(true)
---     -- print(event, addOnName)
--- end
-
-function f:GROUP_ROSTER_UPDATE()
-    local currentCharacterName = UnitName("player")
-    local allowedCharacterNames = { "Boboboy" }
+    -- local currentCharacterName = UnitName("player")
+    -- local allowedCharacterNames = { "Boboboy" }
+    local allowedCharacterNames = { OTHER_CHAR_NAME }
     -- local currentGroupCharacterNames = { currentCharacterName, "Boboboy", "123" }
     local currentGroupCharacterNames = GetHomePartyInfo()
 
@@ -136,18 +86,11 @@ function f:GROUP_ROSTER_UPDATE()
         return
     end
 
-    -- for _, v in ipairs(currentGroupCharacterNames) do
-    --     print("groupCharName: ", v)
-    -- end
-
-    -- ensure_loot_type(LOOT_TYPE_FFA)
-
     local disallowedCharacterInGroup = false
     for _, v in pairs(currentGroupCharacterNames) do
         if table_has_value(allowedCharacterNames, v) then
             --
         else
-            -- print("BAD TOYS", v)
             disallowedCharacterInGroup = true
             break
         end
@@ -164,66 +107,77 @@ function f:GROUP_ROSTER_UPDATE()
             end
         end
 
-        -- print("Found character in group which is not in allowed list")
-        -- print(allowedCharacterNames)
-        -- for _, v in ipairs(allowedCharacterNames) do
-        --     print("groupCharName: ", v)
-        -- end
+        ensure_loot_method(LOOT_TYPE_GROUP)
 
-        if GetLootMethod() ~= LOOT_TYPE_GROUP then
-            print("Setting group loot")
-            SetLootMethod(LOOT_TYPE_GROUP)
-        end
         return
     end
 
-    -- print("All characters in group are on the allowed list")
-    if GetLootMethod() ~= LOOT_TYPE_FFA then
-        print("Setting FFA loot")
-        SetLootMethod(LOOT_TYPE_FFA)
-    end
+    ensure_loot_method(LOOT_TYPE_FFA)
 
     -- print(currentCharacterName)
     -- SetOptOutOfLoot(true)
     -- print(event, addOnName)
 end
 
--- function ensure_loot_type(val)
---     local currentLootType = GetLootMethod()
---     print(currentLootType)
---     if (currentLootType ~= val) then
---         SetLootMethod(val)
---     end
--- end
+function f:GROUP_ROSTER_UPDATE()
+    ensure_raid_target(MY_CHAR_NAME, MY_RAID_TARGET_INDEX)
+    ensure_raid_target(OTHER_CHAR_NAME, OTHER_RAID_TARGET_INDEX)
+
+    -- local currentCharacterName = UnitName("player")
+    -- local allowedCharacterNames = { "Boboboy" }
+    local allowedCharacterNames = { OTHER_CHAR_NAME }
+    -- local currentGroupCharacterNames = { currentCharacterName, "Boboboy", "123" }
+    local currentGroupCharacterNames = GetHomePartyInfo()
+
+    local inGroup = IsInGroup()
+    if inGroup ~= true then
+        -- print("No actions taken, not in group")
+        return
+    end
+    
+    local isLeader = UnitIsGroupLeader("player")
+    if isLeader ~= true then
+        -- print("No actions taken, not group leader")
+        return
+    end
+
+    local disallowedCharacterInGroup = false
+    for _, v in pairs(currentGroupCharacterNames) do
+        if table_has_value(allowedCharacterNames, v) then
+            --
+        else
+            disallowedCharacterInGroup = true
+            break
+        end
+    end
+
+    if disallowedCharacterInGroup then
+        local isInRaid = IsInRaid()
+        if isInRaid then
+            local currentLootMethod = GetLootMethod()
+            if currentLootMethod == LOOT_TYPE_FFA then
+                print("In raid and loot type is FFA, you might want to switch to something else")
+                -- print("In raid and loot type is FFA, switching to group loot")
+                -- SetLootMethod(LOOT_TYPE_GROUP)
+            end
+        end
+
+        ensure_loot_method(LOOT_TYPE_GROUP)
+
+        return
+    end
+
+    ensure_loot_method(LOOT_TYPE_FFA)
+
+    -- print(currentCharacterName)
+    -- SetOptOutOfLoot(true)
+    -- print(event, addOnName)
+end
 
 
 
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
+-- f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("ADDON_LOADED")
-f:RegisterEvent("GOSSIP_SHOW")
+-- f:RegisterEvent("GOSSIP_SHOW")
 f:RegisterEvent("GROUP_ROSTER_UPDATE")
 f:SetScript("OnEvent", f.OnEvent)
-
-
--- local f = CreateFrame("Frame")
-
--- function f:OnEvent(event, ...)
--- 	self[event](self, event, ...)
--- end
-
--- function f:ADDON_LOADED(event, addOnName)
--- 	print(event, addOnName)
--- end
-
--- function f:PLAYER_ENTERING_WORLD(event, isLogin, isReload)
--- 	print(event, isLogin, isReload)
--- end
-
--- function f:CHAT_MSG_CHANNEL(event, text, playerName, _, channelName)
--- 	print(event, text, playerName, channelName)
--- end
-
--- f:RegisterEvent("ADDON_LOADED")
--- f:RegisterEvent("PLAYER_ENTERING_WORLD")
--- f:RegisterEvent("CHAT_MSG_CHANNEL")
--- f:SetScript("OnEvent", f.OnEvent)
