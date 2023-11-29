@@ -1,9 +1,9 @@
 -- local name,addon=...;
 -- addon.myvar = "test"
 
-local MY_CHAR_NAME = "player"
+local MY_CHAR_UNIT = "player"
 local MY_RAID_TARGET_INDEX = 1
-local OTHER_CHAR_NAME = "Addonmanager"
+local OTHER_CHAR_UNIT = "Addonmanager"
 local OTHER_RAID_TARGET_INDEX = 3
 
 
@@ -50,9 +50,7 @@ local function table_has_value (tab, val)
 end
 
 local function ensure_raid_target(unit, raidTargetIndex)
-    currentRaidTargetIndex = GetRaidTargetIndex(unit)
-
-    if currentRaidTargetIndex ~= raidTargetIndex then
+    if GetRaidTargetIndex(unit) ~= raidTargetIndex then
         SetRaidTarget(unit, raidTargetIndex)
     end
 end
@@ -64,13 +62,10 @@ local function ensure_loot_method(lootMethod)
     end
 end
 
-function f:GOSSIP_SHOW(event, addOnName)
-    ensure_raid_target(MY_CHAR_NAME, MY_RAID_TARGET_INDEX)
-    ensure_raid_target(OTHER_CHAR_NAME, OTHER_RAID_TARGET_INDEX)
-
+local function process_group_loot_type()
     -- local currentCharacterName = UnitName("player")
     -- local allowedCharacterNames = { "Boboboy" }
-    local allowedCharacterNames = { OTHER_CHAR_NAME }
+    local allowedCharacterNames = { OTHER_CHAR_UNIT }
     -- local currentGroupCharacterNames = { currentCharacterName, "Boboboy", "123" }
     local currentGroupCharacterNames = GetHomePartyInfo()
 
@@ -119,59 +114,18 @@ function f:GOSSIP_SHOW(event, addOnName)
     -- print(event, addOnName)
 end
 
+function f:GOSSIP_SHOW(event, addOnName)
+    ensure_raid_target(MY_CHAR_UNIT, MY_RAID_TARGET_INDEX)
+    ensure_raid_target(OTHER_CHAR_UNIT, OTHER_RAID_TARGET_INDEX)
+
+    process_group_loot_type()
+end
+
 function f:GROUP_ROSTER_UPDATE()
-    ensure_raid_target(MY_CHAR_NAME, MY_RAID_TARGET_INDEX)
-    ensure_raid_target(OTHER_CHAR_NAME, OTHER_RAID_TARGET_INDEX)
+    ensure_raid_target(MY_CHAR_UNIT, MY_RAID_TARGET_INDEX)
+    ensure_raid_target(OTHER_CHAR_UNIT, OTHER_RAID_TARGET_INDEX)
 
-    -- local currentCharacterName = UnitName("player")
-    -- local allowedCharacterNames = { "Boboboy" }
-    local allowedCharacterNames = { OTHER_CHAR_NAME }
-    -- local currentGroupCharacterNames = { currentCharacterName, "Boboboy", "123" }
-    local currentGroupCharacterNames = GetHomePartyInfo()
-
-    local inGroup = IsInGroup()
-    if inGroup ~= true then
-        -- print("No actions taken, not in group")
-        return
-    end
-    
-    local isLeader = UnitIsGroupLeader("player")
-    if isLeader ~= true then
-        -- print("No actions taken, not group leader")
-        return
-    end
-
-    local disallowedCharacterInGroup = false
-    for _, v in pairs(currentGroupCharacterNames) do
-        if table_has_value(allowedCharacterNames, v) then
-            --
-        else
-            disallowedCharacterInGroup = true
-            break
-        end
-    end
-
-    if disallowedCharacterInGroup then
-        local isInRaid = IsInRaid()
-        if isInRaid then
-            local currentLootMethod = GetLootMethod()
-            if currentLootMethod == LOOT_TYPE_FFA then
-                print("In raid and loot type is FFA, you might want to switch to something else")
-                -- print("In raid and loot type is FFA, switching to group loot")
-                -- SetLootMethod(LOOT_TYPE_GROUP)
-            end
-        end
-
-        ensure_loot_method(LOOT_TYPE_GROUP)
-
-        return
-    end
-
-    ensure_loot_method(LOOT_TYPE_FFA)
-
-    -- print(currentCharacterName)
-    -- SetOptOutOfLoot(true)
-    -- print(event, addOnName)
+    process_group_loot_type()
 end
 
 
