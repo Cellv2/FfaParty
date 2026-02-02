@@ -4,5 +4,5 @@
 ## Notes: Automatically sets FFA or group loot depending on your party members
 ## Author: Cellv2
 
-main.lua
 options.lua
+main.lua
