@@ -3,6 +3,9 @@
 ## Title: FFA Party
 ## Notes: Automatically sets FFA or group loot depending on your party members
 ## Author: Cellv2
+## SavedVariables: FFAPartyDB, FFAPartyMinimap
 
 options.lua
+minimap.lua
 main.lua
+friends_ui.lua

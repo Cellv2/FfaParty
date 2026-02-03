@@ -1,60 +1,148 @@
 -- options.lua
 local addonName, addon = ...
-addon = addon or {}
-_G[addonName] = addon
-print("FFA Party: options.lua loaded for", addonName, "addon table:", addon)
+print("FFA Party: options.lua loaded for", addonName)
+
+local MAIN_WIDTH, MAIN_HEIGHT = 360, 460
+
+local function ForceTextColor(obj)
+    if not obj then
+        return
+    end
+    if obj.SetTextColor then
+        obj:SetTextColor(1, 1, 1, 1)
+    elseif obj.Text and obj.Text.SetTextColor then
+        obj.Text:SetTextColor(1, 1, 1, 1)
+    end
+end
 
 function addon.CreateOptionsPanel()
-    local panel = CreateFrame("Frame")
-    panel.name = "FFA Party" -- force a nice display name
-
-    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText("FFA Party Options")
+    if FfaPartyOptionsPanel then
+        return
+    end
 
     --------------------------------------------------------
-    -- Ignore raids checkbox
+    -- Main panel
     --------------------------------------------------------
-    local ignoreRaidsCB = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    ignoreRaidsCB:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
-    ignoreRaidsCB.Text:SetText("Ignore raids")
-    ignoreRaidsCB:SetChecked(FFAPartyDB.ignoreRaids)
-    ignoreRaidsCB:SetScript("OnClick", function(self)
-        FFAPartyDB.ignoreRaids = self:GetChecked()
+    local panel = CreateFrame("Frame", "FfaPartyOptionsPanel", UIParent)
+    panel:SetSize(MAIN_WIDTH, MAIN_HEIGHT)
+    panel:SetPoint("CENTER")
+    panel:Hide()
+    panel:SetFrameStrata("DIALOG")
+
+    panel:EnableMouse(true)
+    panel:SetMovable(true)
+    panel:RegisterForDrag("LeftButton")
+    panel:SetScript("OnDragStart", function(self)
+        self:StartMoving()
+    end)
+    panel:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+    end)
+    panel:SetClampedToScreen(true)
+
+    local bg = panel:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(panel)
+    bg:SetColorTexture(0, 0, 0, 0.08)
+
+    local border = panel:CreateTexture(nil, "BORDER")
+    border:SetPoint("TOPLEFT", -6, 6)
+    border:SetPoint("BOTTOMRIGHT", 6, -6)
+    border:SetColorTexture(0, 0, 0, 0.6)
+
+    local edge = panel:CreateTexture(nil, "ARTWORK")
+    edge:SetPoint("TOPLEFT", -4, 4)
+    edge:SetPoint("BOTTOMRIGHT", 4, -4)
+    edge:SetColorTexture(0.06, 0.06, 0.06, 0.6)
+
+    --------------------------------------------------------
+    -- Header
+    --------------------------------------------------------
+    local headerHeight = 40
+    local header = CreateFrame("Frame", "FfaPartyOptionsHeader", panel)
+    header:SetSize(MAIN_WIDTH - 24, headerHeight)
+    header:SetPoint("TOP", panel, "TOP", 0, 12)
+    header:SetFrameStrata("DIALOG")
+    header:SetFrameLevel(panel:GetFrameLevel() + 5)
+
+    local headerBg = header:CreateTexture(nil, "BACKGROUND")
+    headerBg:SetAllPoints(header)
+    headerBg:SetColorTexture(0.06, 0.06, 0.06, 0.92)
+
+    local headerInner = header:CreateTexture(nil, "ARTWORK")
+    headerInner:SetPoint("TOPLEFT", 6, -6)
+    headerInner:SetPoint("BOTTOMRIGHT", -6, 6)
+    headerInner:SetColorTexture(0, 0, 0, 0.45)
+
+    local headerBorder = header:CreateTexture(nil, "OVERLAY")
+    headerBorder:SetPoint("TOPLEFT", -2, 2)
+    headerBorder:SetPoint("BOTTOMRIGHT", 2, -2)
+    headerBorder:SetColorTexture(0, 0, 0, 0.95)
+
+    local headerTitle = header:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    headerTitle:SetPoint("CENTER", header, "CENTER", -8, 4)
+    headerTitle:SetText("FFA Party Options")
+    headerTitle:SetTextColor(1, 0.82, 0, 1)
+
+    local close = CreateFrame("Button", nil, header, "UIPanelCloseButton")
+    close:SetPoint("TOPRIGHT", -6, -6)
+    close:SetScript("OnClick", function()
+        panel:Hide()
+    end)
+
+    header:SetScript("OnEnter", function()
+        headerInner:SetColorTexture(0, 0, 0, 0.55)
+    end)
+    header:SetScript("OnLeave", function()
+        headerInner:SetColorTexture(0, 0, 0, 0.45)
+    end)
+
+    header:EnableMouse(true)
+    header:RegisterForDrag("LeftButton")
+    header:SetScript("OnDragStart", function()
+        panel:StartMoving()
+    end)
+    header:SetScript("OnDragStop", function()
+        panel:StopMovingOrSizing()
     end)
 
     --------------------------------------------------------
-    -- Show messages checkbox
+    -- Content
     --------------------------------------------------------
-    local showMessagesCB = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    showMessagesCB:SetPoint("TOPLEFT", ignoreRaidsCB, "BOTTOMLEFT", 0, -10)
-    showMessagesCB.Text:SetText("Show chat messages")
-    showMessagesCB:SetChecked(FFAPartyDB.showMessages)
-    showMessagesCB:SetScript("OnClick", function(self)
-        FFAPartyDB.showMessages = self:GetChecked()
-    end)
+    local contentTop = -36
+    local leftPad = 18
+
+    local function CreateCheckbox(parent, label, x, y, initial, onClick)
+        local cb = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
+        cb:SetPoint("TOPLEFT", leftPad + x, contentTop + y)
+        cb.Text:SetText(label)
+        cb:SetChecked(initial)
+        cb:SetScript("OnClick", function(self)
+            if onClick then
+                onClick(self)
+            end
+        end)
+        ForceTextColor(cb)
+        return cb
+    end
+
+    local ignoreRaidsCB = CreateCheckbox(panel, "Ignore raids", 0, -10, FFAPartyDB and FFAPartyDB.ignoreRaids,
+        function(self)
+            FFAPartyDB.ignoreRaids = self:GetChecked()
+        end)
+
+    local showMessagesCB = CreateCheckbox(panel, "Show chat messages", 0, -38, FFAPartyDB and FFAPartyDB.showMessages,
+        function(self)
+            FFAPartyDB.showMessages = self:GetChecked()
+        end)
+
+    local debugCB = CreateCheckbox(panel, "Enable debug logging", 0, -66, FFAPartyDB and FFAPartyDB.debug,
+        function(self)
+            FFAPartyDB.debug = self:GetChecked()
+        end)
 
     --------------------------------------------------------
-    -- Debug mode checkbox
+    -- Dropdown helper
     --------------------------------------------------------
-    local debugCB = CreateFrame("CheckButton", nil, panel, "InterfaceOptionsCheckButtonTemplate")
-    debugCB:SetPoint("TOPLEFT", showMessagesCB, "BOTTOMLEFT", 0, -10)
-    debugCB.Text:SetText("Enable debug logging")
-    debugCB:SetChecked(FFAPartyDB.debug)
-    debugCB:SetScript("OnClick", function(self)
-        FFAPartyDB.debug = self:GetChecked()
-    end)
-
-    --------------------------------------------------------
-    -- Loot with friends dropdown
-    --------------------------------------------------------
-    local lootFriendsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootFriendsLabel:SetPoint("TOPLEFT", debugCB, "BOTTOMLEFT", 0, -20)
-    lootFriendsLabel:SetText("Loot with friends:")
-
-    local lootFriendsDD = CreateFrame("Frame", addonName .. "LootFriendsDD", panel, "UIDropDownMenuTemplate")
-    lootFriendsDD:SetPoint("TOPLEFT", lootFriendsLabel, "BOTTOMLEFT", -16, -5)
-
     local lootMethods = {{
         value = "freeforall",
         text = "Free-for-all"
@@ -66,61 +154,103 @@ function addon.CreateOptionsPanel()
         text = "Need Before Greed"
     }}
 
-    UIDropDownMenu_SetWidth(lootFriendsDD, 150)
-    UIDropDownMenu_Initialize(lootFriendsDD, function(self, level)
-        for _, option in ipairs(lootMethods) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = option.text
-            info.func = function()
-                FFAPartyDB.lootWithFriends = option.value
-                UIDropDownMenu_SetSelectedValue(lootFriendsDD, option.value)
+    local function CreateDropdown(name, parent, x, y, initialValue, onSelect)
+        local dd = CreateFrame("Frame", name, parent, "UIDropDownMenuTemplate")
+        dd:SetPoint("TOPLEFT", leftPad + x, contentTop + y)
+        UIDropDownMenu_SetWidth(dd, 160)
+        UIDropDownMenu_Initialize(dd, function(self, level)
+            for _, option in ipairs(lootMethods) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = option.text
+                info.arg1 = option.value
+                info.func = function(_, value)
+                    if onSelect then
+                        onSelect(value)
+                    end
+                    UIDropDownMenu_SetSelectedValue(dd, value)
+                    UIDropDownMenu_SetText(dd, option.text)
+                end
+                UIDropDownMenu_AddButton(info)
             end
-            UIDropDownMenu_AddButton(info)
-        end
-    end)
-    UIDropDownMenu_SetSelectedValue(lootFriendsDD, FFAPartyDB.lootWithFriends)
+        end)
 
-    --------------------------------------------------------
-    -- Loot with others dropdown
-    --------------------------------------------------------
-    local lootOthersLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootOthersLabel:SetPoint("TOPLEFT", lootFriendsDD, "BOTTOMLEFT", 16, -20)
-    lootOthersLabel:SetText("Loot with others:")
-
-    local lootOthersDD = CreateFrame("Frame", addonName .. "LootOthersDD", panel, "UIDropDownMenuTemplate")
-    lootOthersDD:SetPoint("TOPLEFT", lootOthersLabel, "BOTTOMLEFT", -16, -5)
-
-    UIDropDownMenu_SetWidth(lootOthersDD, 150)
-    UIDropDownMenu_Initialize(lootOthersDD, function(self, level)
+        local initialText = nil
         for _, option in ipairs(lootMethods) do
-            local info = UIDropDownMenu_CreateInfo()
-            info.text = option.text
-            info.func = function()
-                FFAPartyDB.lootWithOthers = option.value
-                UIDropDownMenu_SetSelectedValue(lootOthersDD, option.value)
+            if option.value == initialValue then
+                initialText = option.text
+                break
             end
-            UIDropDownMenu_AddButton(info)
         end
-    end)
-    UIDropDownMenu_SetSelectedValue(lootOthersDD, FFAPartyDB.lootWithOthers)
+        UIDropDownMenu_SetSelectedValue(dd, initialValue)
+        if initialText then
+            UIDropDownMenu_SetText(dd, initialText)
+        end
 
-    --------------------------------------------------------
-    -- Register panel
-    --------------------------------------------------------
-    if InterfaceOptions_AddCategory then
-        InterfaceOptions_AddCategory(panel)
+        return dd
     end
 
     --------------------------------------------------------
-    -- Slash commands to open panel
+    -- Loot with friends
+    --------------------------------------------------------
+    local lootFriendsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    lootFriendsLabel:SetPoint("TOPLEFT", leftPad, contentTop - 110)
+    lootFriendsLabel:SetText("Loot with friends:")
+    lootFriendsLabel:SetTextColor(1, 1, 1, 1)
+
+    local lootFriendsDD = CreateDropdown(addonName .. "LootFriendsDD", panel, 0, -134,
+        FFAPartyDB and FFAPartyDB.lootWithFriends or "freeforall", function(value)
+            FFAPartyDB.lootWithFriends = value
+        end)
+
+    --------------------------------------------------------
+    -- Loot with others
+    --------------------------------------------------------
+    local lootOthersLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    lootOthersLabel:SetPoint("TOPLEFT", leftPad, contentTop - 200)
+    lootOthersLabel:SetText("Loot with others:")
+    lootOthersLabel:SetTextColor(1, 1, 1, 1)
+
+    local lootOthersDD = CreateDropdown(addonName .. "LootOthersDD", panel, 0, -224,
+        FFAPartyDB and FFAPartyDB.lootWithOthers or "group", function(value)
+            FFAPartyDB.lootWithOthers = value
+        end)
+
+    --------------------------------------------------------
+    -- Manage friends button
+    --------------------------------------------------------
+    local friendsBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    friendsBtn:SetSize(180, 24)
+    friendsBtn:SetPoint("TOPLEFT", leftPad, contentTop - 280)
+    friendsBtn:SetText("Manage whitelist / blacklist")
+    friendsBtn:SetScript("OnClick", function()
+        if addon.ShowFriendsManager then
+            addon.ShowFriendsManager()
+        end
+    end)
+
+    --------------------------------------------------------
+    -- Footer hint
+    --------------------------------------------------------
+    local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    hint:SetPoint("BOTTOMLEFT", 14, 12)
+    hint:SetText("Right-click the minimap icon to force a refresh.")
+    hint:SetTextColor(0.9, 0.9, 0.9, 1)
+
+    --------------------------------------------------------
+    -- Slash commands
     --------------------------------------------------------
     SLASH_FFAPARTY1 = "/fp"
     SLASH_FFAPARTY2 = "/ffap"
     SLASH_FFAPARTY3 = "/ffaparty"
     SlashCmdList.FFAPARTY = function()
-        if InterfaceOptionsFrame then
-            InterfaceOptionsFrame:Show()
-            print("Open Interface Options → AddOns → FFA Party to configure settings.")
+        if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
+            FfaPartyOptionsPanel:Hide()
+        else
+            if FfaPartyOptionsPanel then
+                FfaPartyOptionsPanel:Show()
+            end
         end
     end
+
+    addon.OptionsPanel = panel
 end

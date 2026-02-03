@@ -1,8 +1,5 @@
--- FFAParty.lua
 -- main.lua
 local addonName, addon = ...
-addon = addon or {}
-_G[addonName] = addon
 print("FFA Party: main.lua loaded for", addonName, "addon table:", addon)
 
 local f = CreateFrame("Frame")
@@ -16,7 +13,8 @@ local defaults = {
     ignoreRaids = true,
     showMessages = true,
     debug = false,
-    customFriends = {} -- manual whitelist
+    customWhitelist = {}, -- manual whitelist (full or base names)
+    customBlacklist = {} -- manual blacklist (full or base names)
 }
 
 ------------------------------------------------------------
@@ -29,6 +27,13 @@ local lootMethodMap = {
     group = 3,
     needbeforegreed = 4
 }
+
+local function NormalizeLootMethod(method)
+    if type(method) == "string" then
+        return lootMethodMap[method]
+    end
+    return method
+end
 
 ------------------------------------------------------------
 -- Utility: normalize names (strip realm if present)
@@ -45,9 +50,9 @@ end
 -- Debug print helper
 ------------------------------------------------------------
 local function DebugPrint(msg)
-    -- if FFAPartyDB and FFAPartyDB.debug then
-    print("|cff00ff00[FFA Party DEBUG]|r " .. msg)
-    -- end
+    if FFAPartyDB and FFAPartyDB.debug then
+        print("|cff00ff00[FFA Party DEBUG]|r " .. msg)
+    end
 end
 
 ------------------------------------------------------------
@@ -59,6 +64,7 @@ local function GetWoWFriends()
         for i = 1, C_FriendList.GetNumFriends() do
             local info = C_FriendList.GetFriendInfoByIndex(i)
             if info and info.name then
+                friends[info.name] = true
                 friends[NormalizeName(info.name)] = true
             end
         end
@@ -67,23 +73,54 @@ local function GetWoWFriends()
 end
 
 ------------------------------------------------------------
--- Collect Battle.net friends (not available in TBC Classic)
+-- Collect Battle.net friends
 ------------------------------------------------------------
 local function GetBNetFriends()
-    return {}
-end
-
-------------------------------------------------------------
--- Collect custom friends (manual whitelist)
-------------------------------------------------------------
-local function GetCustomFriends()
     local friends = {}
-    if FFAPartyDB and FFAPartyDB.customFriends then
-        for _, name in ipairs(FFAPartyDB.customFriends) do
-            friends[NormalizeName(name)] = true
+    if BNGetNumFriends then
+        for i = 1, BNGetNumFriends() do
+            local accountName = select(2, BNGetFriendInfo(i))
+            if accountName then
+                friends[accountName] = true
+                friends[NormalizeName(accountName)] = true
+            end
+            local numToons = BNGetNumFriendToons and BNGetNumFriendToons(i) or 0
+            for t = 1, numToons do
+                local toonName, toonRealm = BNGetFriendToonInfo(i, t)
+                if toonName then
+                    local full = toonRealm and (toonName .. "-" .. toonRealm) or toonName
+                    friends[full] = true
+                    friends[NormalizeName(full)] = true
+                end
+            end
         end
     end
     return friends
+end
+
+------------------------------------------------------------
+-- Custom whitelist / blacklist
+------------------------------------------------------------
+local function GetCustomWhitelist()
+    local t = {}
+    if FFAPartyDB and FFAPartyDB.customWhitelist then
+        for _, name in ipairs(FFAPartyDB.customWhitelist) do
+            t[name] = true
+            t[NormalizeName(name)] = true
+        end
+    end
+    return t
+end
+
+local function GetCustomBlacklist()
+    local t = {}
+    if FFAPartyDB and FFAPartyDB.customBlacklist then
+        for _, name in ipairs(FFAPartyDB.customBlacklist) do
+            t[name] = true
+            t[NormalizeName(name)] = true
+        end
+    end
+    return t
 end
 
 ------------------------------------------------------------
@@ -97,40 +134,75 @@ local function GetGroupMembers()
         for i = 1, num do
             local unit = prefix .. i
             if UnitExists(unit) then
-                local name = UnitName(unit)
+                local name, realm = UnitName(unit)
                 if name then
-                    table.insert(members, NormalizeName(name))
+                    local full = realm and realm ~= "" and (name .. "-" .. realm) or name
+                    table.insert(members, full)
                 end
             end
         end
-        table.insert(members, NormalizeName(UnitName("player")))
+        -- In parties, player may not be in party1..n
+        if not IsInRaid() then
+            local name, realm = UnitName("player")
+            if name then
+                local full = realm and realm ~= "" and (name .. "-" .. realm) or name
+                table.insert(members, full)
+            end
+        end
     end
     return members
+end
+
+------------------------------------------------------------
+-- Friend resolution with whitelist/blacklist and realm safety
+------------------------------------------------------------
+local function IsFriend(fullName, baseName, whitelist, blacklist, autoFriends)
+    -- blacklist always wins
+    if blacklist[fullName] or blacklist[baseName] then
+        return false
+    end
+
+    -- whitelist overrides everything else
+    if whitelist[fullName] or whitelist[baseName] then
+        return true
+    end
+
+    -- auto-friends (WoW + BNet)
+    if autoFriends[fullName] or autoFriends[baseName] then
+        return true
+    end
+
+    return false
 end
 
 ------------------------------------------------------------
 -- Check if group is only friends
 ------------------------------------------------------------
 local function IsGroupOnlyFriends()
-    local friends = {}
+    local autoFriends = {}
+
     for k in pairs(GetWoWFriends()) do
-        friends[k] = true
+        autoFriends[k] = true
     end
     for k in pairs(GetBNetFriends()) do
-        friends[k] = true
-    end
-    for k in pairs(GetCustomFriends()) do
-        friends[k] = true
+        autoFriends[k] = true
     end
 
+    local whitelist = GetCustomWhitelist()
+    local blacklist = GetCustomBlacklist()
+
+    local playerName, playerRealm = UnitName("player")
+    local playerFull = playerRealm and playerRealm ~= "" and (playerName .. "-" .. playerRealm) or playerName
+
     for _, member in ipairs(GetGroupMembers()) do
-        -- Skip the player themselves
-        if member ~= NormalizeName(UnitName("player")) then
-            if not friends[member] then
-                DebugPrint("Non-friend detected in group: " .. (member or "unknown"))
+        if member ~= playerFull then
+            local full = member
+            local base = NormalizeName(member)
+            if not IsFriend(full, base, whitelist, blacklist, autoFriends) then
+                DebugPrint("Non-friend detected in group: " .. (full or "unknown"))
                 return false
             else
-                DebugPrint("Friend matched: " .. (member or "unknown"))
+                DebugPrint("Friend matched: " .. (full or "unknown"))
             end
         end
     end
@@ -141,11 +213,13 @@ end
 ------------------------------------------------------------
 -- Enforce loot method
 ------------------------------------------------------------
-local function UpdateLootMethod()
+function addon.UpdateLootMethod()
     if not IsInGroup() then
+        DebugPrint("Not in group; skipping loot enforcement")
         return
     end
     if not UnitIsGroupLeader("player") then
+        DebugPrint("Not group leader; skipping loot enforcement")
         return
     end
     if IsInRaid() and FFAPartyDB.ignoreRaids then
@@ -156,12 +230,13 @@ local function UpdateLootMethod()
     local desiredLootKey = IsGroupOnlyFriends() and FFAPartyDB.lootWithFriends or FFAPartyDB.lootWithOthers
     local desiredLoot = lootMethodMap[desiredLootKey]
 
-    local currentMethod = nil
+    local currentMethod
     if C_PartyInfo and C_PartyInfo.GetLootMethod then
         currentMethod = C_PartyInfo.GetLootMethod()
-    elseif GetLootMethod then
-        currentMethod = GetLootMethod()
+    else
+        currentMethod = select(1, GetLootMethod())
     end
+    currentMethod = NormalizeLootMethod(currentMethod)
 
     if currentMethod ~= desiredLoot then
         if C_PartyInfo and C_PartyInfo.SetLootMethod then
@@ -171,12 +246,41 @@ local function UpdateLootMethod()
         end
 
         if FFAPartyDB.showMessages then
-            print("Loot set to " .. desiredLootKey)
+            print("FFA Party: loot set to " .. desiredLootKey)
         end
         DebugPrint("Loot method updated to " .. desiredLootKey)
     else
         DebugPrint("Loot method already " .. desiredLootKey .. ", no change")
     end
+end
+
+------------------------------------------------------------
+-- Force refresh helper (exposed)
+------------------------------------------------------------
+function addon.ForceRefresh()
+    DebugPrint("Force refresh requested")
+    addon.UpdateLootMethod()
+    if FFAPartyDB.showMessages then
+        print("FFA Party: forced refresh complete")
+    end
+end
+
+------------------------------------------------------------
+-- Debounced friend-list handling
+------------------------------------------------------------
+local friendUpdatePending = false
+local function HandleFriendUpdate()
+    if friendUpdatePending then
+        DebugPrint("Friend update already pending; skipping")
+        return
+    end
+    friendUpdatePending = true
+    DebugPrint("Scheduling friend-list recheck")
+    C_Timer.After(0.5, function()
+        friendUpdatePending = false
+        DebugPrint("Running friend-list recheck")
+        addon.UpdateLootMethod()
+    end)
 end
 
 ------------------------------------------------------------
@@ -186,25 +290,39 @@ function f:OnEvent(event, ...)
     if event == "ADDON_LOADED" then
         local loadedAddon = ...
         if loadedAddon == addonName then
-            if not FFAPartyDB then
-                FFAPartyDB = {}
-            end
+            FFAPartyDB = FFAPartyDB or {}
             for k, v in pairs(defaults) do
                 if FFAPartyDB[k] == nil then
                     FFAPartyDB[k] = v
                 end
             end
 
-            print("FFA Party: about to call CreateOptionsPanel; value is", addon.CreateOptionsPanel)
             if addon.CreateOptionsPanel then
                 addon.CreateOptionsPanel()
-            else
-                print("FFA Party: CreateOptionsPanel is nil at ADDON_LOADED")
             end
-            DebugPrint("FFA Party loaded and options initialized")
+
+            if addon.CreateMinimapButton then
+                addon.CreateMinimapButton()
+            end
+
+            if addon.InitFriendsUI then
+                addon.InitFriendsUI()
+            end
+
+            DebugPrint("FFA Party loaded and options/minimap/friends UI initialized")
         end
+
     elseif event == "GROUP_ROSTER_UPDATE" or event == "PARTY_LEADER_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
-        UpdateLootMethod()
+        DebugPrint("Group/leader/world event: " .. event)
+        addon.UpdateLootMethod()
+
+    elseif event == "FRIENDLIST_UPDATE" then
+        DebugPrint("Received FRIENDLIST_UPDATE")
+        HandleFriendUpdate()
+
+    elseif event == "BN_FRIEND_ACCOUNT_ONLINE" or event == "BN_FRIEND_ACCOUNT_OFFLINE" then
+        DebugPrint("Received Battle.net friend event: " .. event)
+        HandleFriendUpdate()
     end
 end
 
@@ -212,4 +330,8 @@ f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("GROUP_ROSTER_UPDATE")
 f:RegisterEvent("PARTY_LEADER_CHANGED")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("FRIENDLIST_UPDATE")
+f:RegisterEvent("BN_FRIEND_ACCOUNT_ONLINE")
+f:RegisterEvent("BN_FRIEND_ACCOUNT_OFFLINE")
+
 f:SetScript("OnEvent", f.OnEvent)
