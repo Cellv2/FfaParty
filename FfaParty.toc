@@ -9,7 +9,8 @@ Libs/LibStub.lua
 Libs/LibDataBroker-1.1.lua
 Libs/LibDBIcon-1.0.lua
 
+core.lua
 options.lua
 minimap.lua
-main.lua
 friends_ui.lua
+main.lua

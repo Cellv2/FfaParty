@@ -1,6 +1,6 @@
 -- friends_ui.lua
 local addonName, addon = ...
-if addon.DebugPrint then addon.DebugPrint("friends_ui.lua loaded for " .. addonName) end
+addon.DebugPrint("friends_ui.lua loaded for " .. addonName)
 
 local WIDTH, HEIGHT = 420, 400
 
@@ -383,6 +383,9 @@ function addon.InitFriendsUI()
     end)
 
     panel:SetScript("OnShow", RefreshAll)
+    
+    addon.DebugPrint("Friends UI panel created")
+    return panel
 end
 
 function addon.ShowFriendsManager()

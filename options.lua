@@ -1,6 +1,6 @@
 -- options.lua
 local addonName, addon = ...
-if addon.DebugPrint then addon.DebugPrint("options.lua loaded for " .. addonName) end
+addon.DebugPrint("options.lua loaded for " .. addonName)
 
 local MAIN_WIDTH, MAIN_HEIGHT = 360, 460
 
@@ -285,4 +285,5 @@ function addon.CreateOptionsPanel()
     end
 
     addon.OptionsPanel = panel
+    return panel
 end

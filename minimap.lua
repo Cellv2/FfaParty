@@ -1,5 +1,6 @@
 -- minimap.lua
 local addonName, addon = ...
+addon.DebugPrint("minimap.lua loaded for " .. addonName)
 
 ------------------------------------------------------------
 -- Create Minimap Button
@@ -74,7 +75,8 @@ function addon.CreateMinimapButton()
         LDBIcon:Register(addonName, dataobj, FFAPartyDB.minimap)
         addon.MinimapButton = dataobj
         FFAPartyMinimapButton = dataobj
-        return
+        addon.DebugPrint("Minimap icon created (LibDBIcon)")
+        return dataobj
     end
 
     local button = CreateFrame("Button", "FFAPartyMinimapButton", Minimap)
@@ -199,4 +201,6 @@ function addon.CreateMinimapButton()
     end)
 
     addon.MinimapButton = button
+    addon.DebugPrint("Minimap icon created (fallback button)")
+    return button
 end
