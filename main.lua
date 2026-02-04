@@ -25,20 +25,27 @@ end
 ------------------------------------------------------------
 local function GetBNetFriends()
     local friends = {}
-    if BNGetNumFriends then
-        for i = 1, BNGetNumFriends() do
-            local accountName = select(2, BNGetFriendInfo(i))
-            if accountName then
-                friends[accountName] = true
-                friends[addon.NormalizeName(accountName)] = true
-            end
-            local numToons = BNGetNumFriendToons and BNGetNumFriendToons(i) or 0
-            for t = 1, numToons do
-                local toonName, toonRealm = BNGetFriendToonInfo(i, t)
-                if toonName then
-                    local full = toonRealm and (toonName .. "-" .. toonRealm) or toonName
-                    friends[full] = true
-                    friends[addon.NormalizeName(full)] = true
+    if C_BattleNet and C_BattleNet.GetFriendAccountInfo and BNGetNumFriends then
+        local numFriends = BNGetNumFriends()
+        for i = 1, numFriends do
+            local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
+            if accountInfo then
+                -- Add Battle.net account name if available
+                if accountInfo.accountName then
+                    friends[accountInfo.accountName] = true
+                    friends[addon.NormalizeName(accountInfo.accountName)] = true
+                end
+                
+                -- Add all their game accounts (characters)
+                if accountInfo.gameAccountInfo then
+                    local characterName = accountInfo.gameAccountInfo.characterName
+                    local realmName = accountInfo.gameAccountInfo.realmName
+                    
+                    if characterName then
+                        local full = realmName and (characterName .. "-" .. realmName) or characterName
+                        friends[full] = true
+                        friends[addon.NormalizeName(full)] = true
+                    end
                 end
             end
         end

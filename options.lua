@@ -613,6 +613,10 @@ function addon.CreateOptionsPanel()
         RefreshCharLists()
         charInput:SetText("")
         charInput:ClearFocus()
+        
+        if addon.UpdateLootMethod then
+            addon.UpdateLootMethod()
+        end
     end
 
     charInput:SetScript("OnEnterPressed", DoCharAdd)
@@ -624,6 +628,9 @@ function addon.CreateOptionsPanel()
             RemoveFromCharList(FFAPartyDB.customWhitelist, whitelistFrame.selectedIndex)
             whitelistFrame.selectedIndex = nil
             RefreshCharLists()
+            if addon.UpdateLootMethod then
+                addon.UpdateLootMethod()
+            end
         end
     end)
 
@@ -633,6 +640,9 @@ function addon.CreateOptionsPanel()
             RemoveFromCharList(FFAPartyDB.customBlacklist, blacklistFrame.selectedIndex)
             blacklistFrame.selectedIndex = nil
             RefreshCharLists()
+            if addon.UpdateLootMethod then
+                addon.UpdateLootMethod()
+            end
         end
     end)
 
