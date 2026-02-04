@@ -1,8 +1,8 @@
 -- friends_ui.lua
 local addonName, addon = ...
-print("FFA Party: friends_ui.lua loaded for", addonName)
+if addon.DebugPrint then addon.DebugPrint("friends_ui.lua loaded for " .. addonName) end
 
-local WIDTH, HEIGHT = 420, 360
+local WIDTH, HEIGHT = 420, 400
 
 local function CreateBorderedPanel(name, parent, width, height, titleText)
     local panel = CreateFrame("Frame", name, parent or UIParent)
@@ -226,68 +226,96 @@ function addon.InitFriendsUI()
     --------------------------------------------------------
     -- Lists
     --------------------------------------------------------
-    local whitelistFrame = CreateList(panel, 180, 180, "Whitelist")
-    whitelistFrame:SetPoint("TOPLEFT", leftPad, contentTop - 40)
+    local whitelistFrame = CreateList(panel, 180, 160, "Whitelist")
+    whitelistFrame:SetPoint("TOPLEFT", leftPad, contentTop - 50)
 
-    local blacklistFrame = CreateList(panel, 180, 180, "Blacklist")
-    blacklistFrame:SetPoint("TOPRIGHT", -leftPad, contentTop - 40)
+    local blacklistFrame = CreateList(panel, 180, 160, "Blacklist")
+    blacklistFrame:SetPoint("TOPRIGHT", -leftPad, contentTop - 50)
 
     panel.whitelistFrame = whitelistFrame
     panel.blacklistFrame = blacklistFrame
 
     --------------------------------------------------------
-    -- Input + buttons
+    -- Remove buttons under lists
     --------------------------------------------------------
-    local input = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
-    input:SetSize(WIDTH - 2 * leftPad - 120, 24)
-    input:SetPoint("TOPLEFT", leftPad, contentTop - 240)
-    input:SetAutoFocus(false)
-
-    input:SetScript("OnEnterPressed", function(self)
-        local text = self:GetText()
-        if not text or text == "" then
-            return
-        end
-
-        EnsureLists()
-
-        if IsShiftKeyDown() then
-            AddToList(FFAPartyDB.customBlacklist, text)
-        else
-            AddToList(FFAPartyDB.customWhitelist, text)
-        end
-
-        RefreshAll()
-        self:SetText("")
-        self:ClearFocus()
-    end)
-
-    local addWhitelistBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    addWhitelistBtn:SetSize(100, 22)
-    addWhitelistBtn:SetPoint("LEFT", input, "RIGHT", 4, 0)
-    addWhitelistBtn:SetText("Add to whitelist")
-
-    local addBlacklistBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    addBlacklistBtn:SetSize(100, 22)
-    addBlacklistBtn:SetPoint("TOPLEFT", input, "BOTTOMLEFT", 0, -6)
-    addBlacklistBtn:SetText("Add to blacklist")
-
     local removeWhitelistBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    removeWhitelistBtn:SetSize(100, 22)
-    removeWhitelistBtn:SetPoint("TOPLEFT", whitelistFrame, "BOTTOMLEFT", 0, -6)
+    removeWhitelistBtn:SetSize(120, 22)
+    removeWhitelistBtn:SetPoint("TOP", whitelistFrame, "BOTTOM", 0, -8)
     removeWhitelistBtn:SetText("Remove selected")
 
     local removeBlacklistBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
-    removeBlacklistBtn:SetSize(100, 22)
-    removeBlacklistBtn:SetPoint("TOPLEFT", blacklistFrame, "BOTTOMLEFT", 0, -6)
+    removeBlacklistBtn:SetSize(120, 22)
+    removeBlacklistBtn:SetPoint("TOP", blacklistFrame, "BOTTOM", 0, -8)
     removeBlacklistBtn:SetText("Remove selected")
 
     --------------------------------------------------------
-    -- Data helpers
+    -- Input + buttons
+    --------------------------------------------------------
+    local inputLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    inputLabel:SetPoint("TOPLEFT", leftPad, contentTop - 260)
+    inputLabel:SetText("Add player name:")
+    inputLabel:SetTextColor(1, 1, 1, 1)
+
+    local input = CreateFrame("EditBox", nil, panel, "InputBoxTemplate")
+    input:SetSize(240, 24)
+    input:SetPoint("TOPLEFT", leftPad, contentTop - 282)
+    input:SetAutoFocus(false)
+
+    -- Radio buttons for whitelist/blacklist selection
+    local whitelistRadio = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
+    whitelistRadio:SetPoint("LEFT", input, "RIGHT", 12, 0)
+    whitelistRadio.text = whitelistRadio:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    whitelistRadio.text:SetPoint("LEFT", whitelistRadio, "RIGHT", 2, 0)
+    whitelistRadio.text:SetText("Whitelist")
+    whitelistRadio:SetChecked(true)
+
+    local blacklistRadio = CreateFrame("CheckButton", nil, panel, "UIRadioButtonTemplate")
+    blacklistRadio:SetPoint("TOP", whitelistRadio, "BOTTOM", 0, -4)
+    blacklistRadio.text = blacklistRadio:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    blacklistRadio.text:SetPoint("LEFT", blacklistRadio, "RIGHT", 2, 0)
+    blacklistRadio.text:SetText("Blacklist")
+
+    whitelistRadio:SetScript("OnClick", function(self)
+        self:SetChecked(true)
+        blacklistRadio:SetChecked(false)
+    end)
+
+    blacklistRadio:SetScript("OnClick", function(self)
+        self:SetChecked(true)
+        whitelistRadio:SetChecked(false)
+    end)
+
+    local addBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+    addBtn:SetSize(80, 22)
+    addBtn:SetPoint("TOPLEFT", input, "BOTTOMLEFT", 0, -8)
+    addBtn:SetText("Add")
+
+    --------------------------------------------------------
+    -- Data helpers (defined before use)
     --------------------------------------------------------
     local function EnsureLists()
         FFAPartyDB.customWhitelist = FFAPartyDB.customWhitelist or {}
         FFAPartyDB.customBlacklist = FFAPartyDB.customBlacklist or {}
+    end
+
+    local function AddToList(list, name)
+        name = name and name:gsub("^%s+", ""):gsub("%s+$", "")
+        if not name or name == "" then
+            return
+        end
+        for _, v in ipairs(list) do
+            if v:lower() == name:lower() then
+                return
+            end
+        end
+        table.insert(list, name)
+    end
+
+    local function RemoveFromList(list, index)
+        if not index or not list[index] then
+            return
+        end
+        table.remove(list, index)
     end
 
     local function RefreshAll()
@@ -311,41 +339,30 @@ function addon.InitFriendsUI()
         blacklistFrame.selectedIndex = index
     end
 
-    local function AddToList(list, name)
-        name = name and name:gsub("^%s+", ""):gsub("%s+$", "")
-        if not name or name == "" then
+    --------------------------------------------------------
+    -- Add button handler
+    --------------------------------------------------------
+    local function DoAdd()
+        local text = input:GetText()
+        if not text or text == "" then
             return
         end
-        for _, v in ipairs(list) do
-            if v:lower() == name:lower() then
-                return
-            end
-        end
-        table.insert(list, name)
-    end
 
-    local function RemoveFromList(list, index)
-        if not index or not list[index] then
-            return
-        end
-        table.remove(list, index)
-    end
-
-    addWhitelistBtn:SetScript("OnClick", function()
         EnsureLists()
-        local text = input:GetText()
-        AddToList(FFAPartyDB.customWhitelist, text)
+
+        if blacklistRadio:GetChecked() then
+            AddToList(FFAPartyDB.customBlacklist, text)
+        else
+            AddToList(FFAPartyDB.customWhitelist, text)
+        end
+
         RefreshAll()
         input:SetText("")
-    end)
+        input:ClearFocus()
+    end
 
-    addBlacklistBtn:SetScript("OnClick", function()
-        EnsureLists()
-        local text = input:GetText()
-        AddToList(FFAPartyDB.customBlacklist, text)
-        RefreshAll()
-        input:SetText("")
-    end)
+    input:SetScript("OnEnterPressed", DoAdd)
+    addBtn:SetScript("OnClick", DoAdd)
 
     removeWhitelistBtn:SetScript("OnClick", function()
         EnsureLists()

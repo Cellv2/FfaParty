@@ -1,6 +1,6 @@
 -- options.lua
 local addonName, addon = ...
-print("FFA Party: options.lua loaded for", addonName)
+if addon.DebugPrint then addon.DebugPrint("options.lua loaded for " .. addonName) end
 
 local MAIN_WIDTH, MAIN_HEIGHT = 360, 460
 
@@ -130,14 +130,33 @@ function addon.CreateOptionsPanel()
             FFAPartyDB.ignoreRaids = self:GetChecked()
         end)
 
-    local showMessagesCB = CreateCheckbox(panel, "Show chat messages", 0, -38, FFAPartyDB and FFAPartyDB.showMessages,
+    local showMessagesCB = CreateCheckbox(panel, "Show chat messages", 0, -40, FFAPartyDB and FFAPartyDB.showMessages,
         function(self)
             FFAPartyDB.showMessages = self:GetChecked()
         end)
 
-    local debugCB = CreateCheckbox(panel, "Enable debug logging", 0, -66, FFAPartyDB and FFAPartyDB.debug,
+    local debugCB = CreateCheckbox(panel, "Enable debug logging", 0, -70, FFAPartyDB and FFAPartyDB.debug,
         function(self)
             FFAPartyDB.debug = self:GetChecked()
+        end)
+
+    local hideMinimapCB = CreateCheckbox(panel, "Hide minimap icon", 0, -100, FFAPartyDB and FFAPartyDB.minimap and FFAPartyDB.minimap.hide,
+        function(self)
+            if FFAPartyDB and FFAPartyDB.minimap then
+                FFAPartyDB.minimap.hide = self:GetChecked()
+                local LDBIcon = LibStub and LibStub("LibDBIcon-1.0", true)
+                if LDBIcon and LDBIcon.registry and LDBIcon.registry[addonName] then
+                    if self:GetChecked() then
+                        if LDBIcon.registry[addonName].frame then
+                            LDBIcon.registry[addonName].frame:Hide()
+                        end
+                    else
+                        if LDBIcon.registry[addonName].frame then
+                            LDBIcon.registry[addonName].frame:Show()
+                        end
+                    end
+                end
+            end
         end)
 
     --------------------------------------------------------
@@ -193,11 +212,11 @@ function addon.CreateOptionsPanel()
     -- Loot with friends
     --------------------------------------------------------
     local lootFriendsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootFriendsLabel:SetPoint("TOPLEFT", leftPad, contentTop - 110)
+    lootFriendsLabel:SetPoint("TOPLEFT", leftPad, contentTop - 140)
     lootFriendsLabel:SetText("Loot with friends:")
     lootFriendsLabel:SetTextColor(1, 1, 1, 1)
 
-    local lootFriendsDD = CreateDropdown(addonName .. "LootFriendsDD", panel, 0, -134,
+    local lootFriendsDD = CreateDropdown(addonName .. "LootFriendsDD", panel, 0, -164,
         FFAPartyDB and FFAPartyDB.lootWithFriends or "freeforall", function(value)
             FFAPartyDB.lootWithFriends = value
         end)
@@ -206,11 +225,11 @@ function addon.CreateOptionsPanel()
     -- Loot with others
     --------------------------------------------------------
     local lootOthersLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootOthersLabel:SetPoint("TOPLEFT", leftPad, contentTop - 200)
+    lootOthersLabel:SetPoint("TOPLEFT", leftPad, contentTop - 240)
     lootOthersLabel:SetText("Loot with others:")
     lootOthersLabel:SetTextColor(1, 1, 1, 1)
 
-    local lootOthersDD = CreateDropdown(addonName .. "LootOthersDD", panel, 0, -224,
+    local lootOthersDD = CreateDropdown(addonName .. "LootOthersDD", panel, 0, -264,
         FFAPartyDB and FFAPartyDB.lootWithOthers or "group", function(value)
             FFAPartyDB.lootWithOthers = value
         end)
@@ -220,7 +239,7 @@ function addon.CreateOptionsPanel()
     --------------------------------------------------------
     local friendsBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     friendsBtn:SetSize(180, 24)
-    friendsBtn:SetPoint("TOPLEFT", leftPad, contentTop - 280)
+    friendsBtn:SetPoint("TOPLEFT", leftPad, contentTop - 330)
     friendsBtn:SetText("Manage whitelist / blacklist")
     friendsBtn:SetScript("OnClick", function()
         if addon.ShowFriendsManager then
@@ -233,7 +252,7 @@ function addon.CreateOptionsPanel()
     --------------------------------------------------------
     local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     hint:SetPoint("BOTTOMLEFT", 14, 12)
-    hint:SetText("Right-click the minimap icon to force a refresh.")
+    hint:SetText("Ctrl + Right-click the minimap icon to force a refresh.")
     hint:SetTextColor(0.9, 0.9, 0.9, 1)
 
     --------------------------------------------------------
@@ -242,12 +261,25 @@ function addon.CreateOptionsPanel()
     SLASH_FFAPARTY1 = "/fp"
     SLASH_FFAPARTY2 = "/ffap"
     SLASH_FFAPARTY3 = "/ffaparty"
-    SlashCmdList.FFAPARTY = function()
-        if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
-            FfaPartyOptionsPanel:Hide()
+    SlashCmdList.FFAPARTY = function(msg)
+        msg = msg:lower():trim()
+        
+        if msg == "debug" or msg == "debug toggle" then
+            FFAPartyDB.debug = not FFAPartyDB.debug
+            print("FFA Party: debug logging " .. (FFAPartyDB.debug and "enabled" or "disabled"))
+        elseif msg == "debug on" or msg == "debug enable" then
+            FFAPartyDB.debug = true
+            print("FFA Party: debug logging enabled")
+        elseif msg == "debug off" or msg == "debug disable" then
+            FFAPartyDB.debug = false
+            print("FFA Party: debug logging disabled")
         else
-            if FfaPartyOptionsPanel then
-                FfaPartyOptionsPanel:Show()
+            if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
+                FfaPartyOptionsPanel:Hide()
+            else
+                if FfaPartyOptionsPanel then
+                    FfaPartyOptionsPanel:Show()
+                end
             end
         end
     end

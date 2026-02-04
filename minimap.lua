@@ -30,7 +30,7 @@ function addon.CreateMinimapButton()
             type = "launcher",
             icon = "Interface\\AddOns\\FfaParty\\minimap-icon.tga",
             OnClick = function(_, buttonPressed)
-                if buttonPressed == "RightButton" then
+                if buttonPressed == "RightButton" and IsControlKeyDown() then
                     if addon and addon.ForceRefresh then
                         addon.ForceRefresh()
                     else
@@ -39,27 +39,35 @@ function addon.CreateMinimapButton()
                     return
                 end
 
-                if buttonPressed == "LeftButton" and IsShiftKeyDown() then
-                    if addon.ShowFriendsManager then
+                if buttonPressed == "RightButton" and IsShiftKeyDown() then
+                    if addon.FriendsPanel then
+                        if addon.FriendsPanel:IsShown() then
+                            addon.FriendsPanel:Hide()
+                        else
+                            addon.FriendsPanel:Show()
+                        end
+                    elseif addon.ShowFriendsManager then
                         addon.ShowFriendsManager()
                     end
                     return
                 end
 
-                if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
-                    FfaPartyOptionsPanel:Hide()
-                else
-                    if FfaPartyOptionsPanel then
-                        FfaPartyOptionsPanel:Show()
+                if buttonPressed == "RightButton" then
+                    if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
+                        FfaPartyOptionsPanel:Hide()
+                    else
+                        if FfaPartyOptionsPanel then
+                            FfaPartyOptionsPanel:Show()
+                        end
                     end
                 end
             end,
             OnTooltipShow = function(tt)
                 if not tt or not tt.AddLine then return end
                 tt:AddLine("FFA Party", 1, 1, 1)
-                tt:AddLine("LMB: Open options", 0.8, 0.8, 0.8)
-                tt:AddLine("Shift + LMB: Manage whitelist/blacklist", 0.8, 0.8, 0.8)
-                tt:AddLine("RMB: Force refresh", 0.8, 0.8, 0.8)
+                tt:AddLine("RMB: Open options", 0.8, 0.8, 0.8)
+                tt:AddLine("Shift + RMB: Manage whitelist/blacklist", 0.8, 0.8, 0.8)
+                tt:AddLine("Ctrl + RMB: Force refresh", 0.8, 0.8, 0.8)
             end,
         })
 
@@ -121,8 +129,8 @@ function addon.CreateMinimapButton()
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     button:SetScript("OnClick", function(self, buttonPressed)
-        -- Right-click = force refresh
-        if buttonPressed == "RightButton" then
+        -- Ctrl + Right-click = force refresh
+        if buttonPressed == "RightButton" and IsControlKeyDown() then
             if addon and addon.ForceRefresh then
                 addon.ForceRefresh()
             else
@@ -131,20 +139,28 @@ function addon.CreateMinimapButton()
             return
         end
 
-        -- Shift + Left-click = open friends whitelist/blacklist manager
-        if buttonPressed == "LeftButton" and IsShiftKeyDown() then
-            if addon.ShowFriendsManager then
+        -- Shift + Right-click = toggle friends whitelist/blacklist manager
+        if buttonPressed == "RightButton" and IsShiftKeyDown() then
+            if addon.FriendsPanel then
+                if addon.FriendsPanel:IsShown() then
+                    addon.FriendsPanel:Hide()
+                else
+                    addon.FriendsPanel:Show()
+                end
+            elseif addon.ShowFriendsManager then
                 addon.ShowFriendsManager()
             end
             return
         end
 
-        -- Normal Left-click = toggle options panel
-        if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
-            FfaPartyOptionsPanel:Hide()
-        else
-            if FfaPartyOptionsPanel then
-                FfaPartyOptionsPanel:Show()
+        -- Normal Right-click = toggle options panel
+        if buttonPressed == "RightButton" then
+            if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
+                FfaPartyOptionsPanel:Hide()
+            else
+                if FfaPartyOptionsPanel then
+                    FfaPartyOptionsPanel:Show()
+                end
             end
         end
     end)
@@ -152,9 +168,9 @@ function addon.CreateMinimapButton()
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
         GameTooltip:AddLine("FFA Party", 1, 1, 1)
-        GameTooltip:AddLine("LMB: Open options", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("Shift + LMB: Manage whitelist/blacklist", 0.8, 0.8, 0.8)
-        GameTooltip:AddLine("RMB: Force refresh", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine("RMB: Open options", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine("Shift + RMB: Manage whitelist/blacklist", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine("Ctrl + RMB: Force refresh", 0.8, 0.8, 0.8)
         GameTooltip:Show()
     end)
 

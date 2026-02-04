@@ -1,6 +1,5 @@
 -- main.lua
 local addonName, addon = ...
-print("FFA Party: main.lua loaded for", addonName, "addon table:", addon)
 
 local f = CreateFrame("Frame")
 
@@ -54,6 +53,9 @@ local function DebugPrint(msg)
         print("|cff00ff00[FFA Party DEBUG]|r " .. msg)
     end
 end
+
+-- Expose debug print for other files
+addon.DebugPrint = DebugPrint
 
 ------------------------------------------------------------
 -- Collect WoW friends
@@ -310,6 +312,7 @@ function f:OnEvent(event, ...)
             end
 
             DebugPrint("FFA Party loaded and options/minimap/friends UI initialized")
+            DebugPrint("main.lua loaded for " .. addonName)
         end
 
     elseif event == "GROUP_ROSTER_UPDATE" or event == "PARTY_LEADER_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
