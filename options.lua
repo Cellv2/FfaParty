@@ -2,7 +2,7 @@
 local addonName, addon = ...
 addon.DebugPrint("options.lua loaded for " .. addonName)
 
-local MAIN_WIDTH, MAIN_HEIGHT = 360, 460
+local MAIN_WIDTH, MAIN_HEIGHT = 360, 520
 
 local function ForceTextColor(obj)
     if not obj then
@@ -130,17 +130,27 @@ function addon.CreateOptionsPanel()
             FFAPartyDB.ignoreRaids = self:GetChecked()
         end)
 
-    local showMessagesCB = CreateCheckbox(panel, "Show chat messages", 0, -40, FFAPartyDB and FFAPartyDB.showMessages,
+    local enabledCB = CreateCheckbox(panel, "Enable addon functionality", 0, -40, FFAPartyDB and FFAPartyDB.enabled,
+        function(self)
+            FFAPartyDB.enabled = self:GetChecked()
+            local status = FFAPartyDB.enabled and "|cff00ff00enabled|r" or "|cffff0000disabled|r"
+            print("FFA Party: " .. status)
+            if FFAPartyDB.enabled and addon.UpdateLootMethod then
+                addon.UpdateLootMethod()
+            end
+        end)
+
+    local showMessagesCB = CreateCheckbox(panel, "Show chat messages", 0, -70, FFAPartyDB and FFAPartyDB.showMessages,
         function(self)
             FFAPartyDB.showMessages = self:GetChecked()
         end)
 
-    local debugCB = CreateCheckbox(panel, "Enable debug logging", 0, -70, FFAPartyDB and FFAPartyDB.debug,
+    local debugCB = CreateCheckbox(panel, "Enable debug logging", 0, -100, FFAPartyDB and FFAPartyDB.debug,
         function(self)
             FFAPartyDB.debug = self:GetChecked()
         end)
 
-    local hideMinimapCB = CreateCheckbox(panel, "Hide minimap icon", 0, -100, FFAPartyDB and FFAPartyDB.minimap and FFAPartyDB.minimap.hide,
+    local hideMinimapCB = CreateCheckbox(panel, "Hide minimap icon", 0, -130, FFAPartyDB and FFAPartyDB.minimap and FFAPartyDB.minimap.hide,
         function(self)
             if FFAPartyDB and FFAPartyDB.minimap then
                 FFAPartyDB.minimap.hide = self:GetChecked()
@@ -212,11 +222,11 @@ function addon.CreateOptionsPanel()
     -- Loot with friends
     --------------------------------------------------------
     local lootFriendsLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootFriendsLabel:SetPoint("TOPLEFT", leftPad, contentTop - 140)
+    lootFriendsLabel:SetPoint("TOPLEFT", leftPad, contentTop - 170)
     lootFriendsLabel:SetText("Loot with friends:")
     lootFriendsLabel:SetTextColor(1, 1, 1, 1)
 
-    local lootFriendsDD = CreateDropdown(addonName .. "LootFriendsDD", panel, 0, -164,
+    local lootFriendsDD = CreateDropdown(addonName .. "LootFriendsDD", panel, 0, -194,
         FFAPartyDB and FFAPartyDB.lootWithFriends or "freeforall", function(value)
             FFAPartyDB.lootWithFriends = value
         end)
@@ -225,21 +235,105 @@ function addon.CreateOptionsPanel()
     -- Loot with others
     --------------------------------------------------------
     local lootOthersLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootOthersLabel:SetPoint("TOPLEFT", leftPad, contentTop - 240)
+    lootOthersLabel:SetPoint("TOPLEFT", leftPad, contentTop - 270)
     lootOthersLabel:SetText("Loot with others:")
     lootOthersLabel:SetTextColor(1, 1, 1, 1)
 
-    local lootOthersDD = CreateDropdown(addonName .. "LootOthersDD", panel, 0, -264,
+    local lootOthersDD = CreateDropdown(addonName .. "LootOthersDD", panel, 0, -294,
         FFAPartyDB and FFAPartyDB.lootWithOthers or "group", function(value)
             FFAPartyDB.lootWithOthers = value
         end)
+
+    --------------------------------------------------------
+    -- Raid icon marking
+    --------------------------------------------------------
+    local raidIconLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    raidIconLabel:SetPoint("TOPLEFT", leftPad, contentTop - 350)
+    raidIconLabel:SetText("Mark friends with raid icons (when not in raid):")
+    raidIconLabel:SetTextColor(1, 1, 1, 1)
+
+    -- Table of raid icons with input fields
+    local iconInputs = {}
+    local function UpdateRaidIconInput(iconIndex, friendName)
+        -- Clear all raid icon friends and rebuild from current input values
+        FFAPartyDB.raidIconFriends = {}
+        for i = 1, 8 do
+            local input = iconInputs[i]
+            local newName = input:GetText():gsub("^%s+", ""):gsub("%s+$", "")
+            if newName and newName ~= "" then
+                FFAPartyDB.raidIconFriends[newName] = i
+            end
+        end
+        -- Apply raid icons immediately to current group
+        if addon.UpdateRaidIcon then
+            addon.UpdateRaidIcon()
+        end
+    end
+
+    local listBorder = CreateFrame("Frame", nil, panel, "BackdropTemplate")
+    listBorder:SetPoint("TOPLEFT", leftPad, contentTop - 375)
+    listBorder:SetSize(MAIN_WIDTH - 2 * leftPad, 160)
+    listBorder:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+        tile = true,
+        tileSize = 16,
+        edgeSize = 12,
+        insets = { left = 3, right = 3, top = 3, bottom = 3 }
+    })
+    listBorder:SetBackdropColor(0, 0, 0, 0.4)
+    listBorder:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+
+    local raidIconList = CreateFrame("Frame", nil, panel)
+    raidIconList:SetSize(MAIN_WIDTH - 2 * leftPad - 30, 150)
+    raidIconList:SetPoint("TOPLEFT", listBorder, 6, -6)
+
+    for i = 8, 1, -1 do
+        -- Icon name label
+        local iconNameLabel = raidIconList:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        iconNameLabel:SetPoint("TOPLEFT", 0, -(8 - i) * 18)
+        iconNameLabel:SetSize(90, 18)
+        iconNameLabel:SetJustifyH("LEFT")
+        iconNameLabel:SetText(addon.raidIconNames[i])
+        iconNameLabel:SetTextColor(0.9, 0.9, 0.9, 1)
+
+        -- Input field for player name
+        local input = CreateFrame("EditBox", nil, raidIconList, "InputBoxTemplate")
+        input:SetSize(130, 18)
+        input:SetPoint("LEFT", iconNameLabel, "RIGHT", 10, 0)
+        input:SetAutoFocus(false)
+        input:SetFontObject("GameFontHighlightSmall")
+        
+        -- Load existing value
+        local existingName = nil
+        for friendName, iconIdx in pairs(FFAPartyDB.raidIconFriends or {}) do
+            if iconIdx == i then
+                existingName = friendName
+                break
+            end
+        end
+        if existingName then
+            input:SetText(existingName)
+        end
+
+        -- Save on edit
+        input:SetScript("OnEditFocusLost", function(self)
+            UpdateRaidIconInput(i, nil)
+        end)
+        input:SetScript("OnEnterPressed", function(self)
+            UpdateRaidIconInput(i, nil)
+            self:ClearFocus()
+        end)
+
+        iconInputs[i] = input
+    end
 
     --------------------------------------------------------
     -- Manage friends button
     --------------------------------------------------------
     local friendsBtn = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
     friendsBtn:SetSize(180, 24)
-    friendsBtn:SetPoint("TOPLEFT", leftPad, contentTop - 330)
+    friendsBtn:SetPoint("TOPLEFT", leftPad, contentTop - 420)
     friendsBtn:SetText("Manage whitelist / blacklist")
     friendsBtn:SetScript("OnClick", function()
         if addon.ShowFriendsManager then
@@ -252,7 +346,7 @@ function addon.CreateOptionsPanel()
     --------------------------------------------------------
     local hint = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     hint:SetPoint("BOTTOMLEFT", 14, 12)
-    hint:SetText("Ctrl + Right-click the minimap icon to force a refresh.")
+    hint:SetText("LMB: Toggle enable/disable | Ctrl + RMB: Force refresh")
     hint:SetTextColor(0.9, 0.9, 0.9, 1)
 
     --------------------------------------------------------
@@ -264,7 +358,16 @@ function addon.CreateOptionsPanel()
     SlashCmdList.FFAPARTY = function(msg)
         msg = msg:lower():trim()
         
-        if msg == "debug" or msg == "debug toggle" then
+        if msg == "enable" then
+            FFAPartyDB.enabled = true
+            print("FFA Party: |cff00ff00enabled|r")
+            if addon.UpdateLootMethod then
+                addon.UpdateLootMethod()
+            end
+        elseif msg == "disable" then
+            FFAPartyDB.enabled = false
+            print("FFA Party: |cffff0000disabled|r")
+        elseif msg == "debug" or msg == "debug toggle" then
             FFAPartyDB.debug = not FFAPartyDB.debug
             print("FFA Party: debug logging " .. (FFAPartyDB.debug and "enabled" or "disabled"))
         elseif msg == "debug on" or msg == "debug enable" then

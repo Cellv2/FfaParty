@@ -162,6 +162,10 @@ end
 -- Enforce loot method
 ------------------------------------------------------------
 function addon.UpdateLootMethod()
+    if not FFAPartyDB.enabled then
+        addon.DebugPrint("Addon disabled; skipping loot enforcement")
+        return
+    end
     if not IsInGroup() then
         addon.DebugPrint("Not in group; skipping loot enforcement")
         return
@@ -203,11 +207,84 @@ function addon.UpdateLootMethod()
 end
 
 ------------------------------------------------------------
+-- Raid icon marking for friends
+------------------------------------------------------------
+function addon.UpdateRaidIcon()
+    if not FFAPartyDB.enabled then
+        return
+    end
+    if IsInRaid() then
+        -- Don't overwrite raid icons when in a raid
+        return
+    end
+    if not IsInGroup() then
+        return
+    end
+    
+    local raidIconFriends = FFAPartyDB.raidIconFriends or {}
+    
+    -- Build a table of friends to look for with their normalized names
+    local friendsToMark = {}
+    for friendName, iconIndex in pairs(raidIconFriends) do
+        friendsToMark[friendName] = iconIndex
+        friendsToMark[addon.NormalizeName(friendName)] = iconIndex
+    end
+    
+    -- Clear all raid icons first (in case friends were removed)
+    local num = GetNumGroupMembers()
+    if num > 0 then
+        local prefix = "party"
+        for i = 1, num do
+            local unit = prefix .. i
+            if UnitExists(unit) then
+                SetRaidTarget(unit, 0)
+            end
+        end
+    end
+    
+    -- Check all group members and apply configured icons
+    if num > 0 then
+        local prefix = "party"
+        for i = 1, num do
+            local unit = prefix .. i
+            if UnitExists(unit) then
+                local name, realm = UnitName(unit)
+                if name then
+                    local full = realm and realm ~= "" and (name .. "-" .. realm) or name
+                    local base = addon.NormalizeName(full)
+                    
+                    -- Check if this unit matches any of our configured friends
+                    local iconIndex = friendsToMark[full] or friendsToMark[name] or friendsToMark[base]
+                    if iconIndex then
+                        SetRaidTarget(unit, iconIndex)
+                        addon.DebugPrint("Raid icon " .. addon.raidIconNames[iconIndex] .. " set on " .. full)
+                    end
+                end
+            end
+        end
+        
+        -- Also check if the player themselves matches any configured friend
+        local playerName, playerRealm = UnitName("player")
+        if playerName then
+            local playerFull = playerRealm and playerRealm ~= "" and (playerName .. "-" .. playerRealm) or playerName
+            local playerBase = addon.NormalizeName(playerFull)
+            
+            local iconIndex = friendsToMark[playerFull] or friendsToMark[playerName] or friendsToMark[playerBase]
+            if iconIndex then
+                SetRaidTarget("player", iconIndex)
+                addon.DebugPrint("Raid icon " .. addon.raidIconNames[iconIndex] .. " set on player")
+            end
+        end
+    end
+end
+
+------------------------------------------------------------
 -- Force refresh helper (exposed)
 ------------------------------------------------------------
 function addon.ForceRefresh()
     addon.DebugPrint("Force refresh requested")
     addon.UpdateLootMethod()
+    addon.UpdateRaidIcon()
     if FFAPartyDB.showMessages then
         print("FFA Party: forced refresh complete")
     end
@@ -264,6 +341,7 @@ function f:OnEvent(event, ...)
     elseif event == "GROUP_ROSTER_UPDATE" or event == "PARTY_LEADER_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
         addon.DebugPrint("Group/leader/world event: " .. event)
         addon.UpdateLootMethod()
+        addon.UpdateRaidIcon()
 
     elseif event == "FRIENDLIST_UPDATE" then
         addon.DebugPrint("Received FRIENDLIST_UPDATE")

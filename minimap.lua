@@ -31,6 +31,16 @@ function addon.CreateMinimapButton()
             type = "launcher",
             icon = "Interface\\AddOns\\FfaParty\\minimap-icon.tga",
             OnClick = function(_, buttonPressed)
+                if buttonPressed == "LeftButton" then
+                    FFAPartyDB.enabled = not FFAPartyDB.enabled
+                    local status = FFAPartyDB.enabled and "|cff00ff00enabled|r" or "|cffff0000disabled|r"
+                    print("FFA Party: " .. status)
+                    if FFAPartyDB.enabled then
+                        addon.UpdateLootMethod()
+                    end
+                    return
+                end
+
                 if buttonPressed == "RightButton" and IsControlKeyDown() then
                     if addon and addon.ForceRefresh then
                         addon.ForceRefresh()
@@ -65,7 +75,11 @@ function addon.CreateMinimapButton()
             end,
             OnTooltipShow = function(tt)
                 if not tt or not tt.AddLine then return end
+                local status = FFAPartyDB and FFAPartyDB.enabled and "|cff00ff00Enabled|r" or "|cffff0000Disabled|r"
                 tt:AddLine("FFA Party", 1, 1, 1)
+                tt:AddLine("Status: " .. status, 0.8, 0.8, 0.8)
+                tt:AddLine(" ", 0.8, 0.8, 0.8)
+                tt:AddLine("LMB: Toggle enable/disable", 0.8, 0.8, 0.8)
                 tt:AddLine("RMB: Open options", 0.8, 0.8, 0.8)
                 tt:AddLine("Shift + RMB: Manage whitelist/blacklist", 0.8, 0.8, 0.8)
                 tt:AddLine("Ctrl + RMB: Force refresh", 0.8, 0.8, 0.8)
@@ -131,6 +145,17 @@ function addon.CreateMinimapButton()
     button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     button:SetScript("OnClick", function(self, buttonPressed)
+        -- Left-click = toggle enabled/disabled
+        if buttonPressed == "LeftButton" then
+            FFAPartyDB.enabled = not FFAPartyDB.enabled
+            local status = FFAPartyDB.enabled and "|cff00ff00enabled|r" or "|cffff0000disabled|r"
+            print("FFA Party: " .. status)
+            if FFAPartyDB.enabled then
+                addon.UpdateLootMethod()
+            end
+            return
+        end
+
         -- Ctrl + Right-click = force refresh
         if buttonPressed == "RightButton" and IsControlKeyDown() then
             if addon and addon.ForceRefresh then
@@ -169,7 +194,11 @@ function addon.CreateMinimapButton()
 
     button:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        local status = FFAPartyDB and FFAPartyDB.enabled and "|cff00ff00Enabled|r" or "|cffff0000Disabled|r"
         GameTooltip:AddLine("FFA Party", 1, 1, 1)
+        GameTooltip:AddLine("Status: " .. status, 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(" ", 0.8, 0.8, 0.8)
+        GameTooltip:AddLine("LMB: Toggle enable/disable", 0.8, 0.8, 0.8)
         GameTooltip:AddLine("RMB: Open options", 0.8, 0.8, 0.8)
         GameTooltip:AddLine("Shift + RMB: Manage whitelist/blacklist", 0.8, 0.8, 0.8)
         GameTooltip:AddLine("Ctrl + RMB: Force refresh", 0.8, 0.8, 0.8)
