@@ -5,6 +5,10 @@
 ## Author: Cellv2
 ## SavedVariables: FFAPartyDB, FFAPartyMinimap
 
+Libs/LibStub.lua
+Libs/LibDataBroker-1.1.lua
+Libs/LibDBIcon-1.0.lua
+
 options.lua
 minimap.lua
 main.lua

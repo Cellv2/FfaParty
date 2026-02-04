@@ -11,7 +11,61 @@ function addon.CreateMinimapButton()
         } -- default position
     end
 
-    if FFAPartyMinimapButton then
+    -- Prefer LibDBIcon (via LibDataBroker) when available
+    local LDB = LibStub and LibStub("LibDataBroker-1.1", true)
+    local LDBIcon = LibStub and LibStub("LibDBIcon-1.0", true)
+    if LDB and LDBIcon then
+        if FFAPartyMinimapButton then
+            return
+        end
+
+        if not FFAPartyDB then
+            FFAPartyDB = {}
+        end
+        if not FFAPartyDB.minimap then
+            FFAPartyDB.minimap = { hide = false, minimapPos = FFAPartyMinimap.angle or 45 }
+        end
+
+        local dataobj = LDB:NewDataObject(addonName, {
+            type = "launcher",
+            icon = "Interface\\AddOns\\FfaParty\\minimap-icon.tga",
+            OnClick = function(_, buttonPressed)
+                if buttonPressed == "RightButton" then
+                    if addon and addon.ForceRefresh then
+                        addon.ForceRefresh()
+                    else
+                        print("FFA Party: force refresh unavailable")
+                    end
+                    return
+                end
+
+                if buttonPressed == "LeftButton" and IsShiftKeyDown() then
+                    if addon.ShowFriendsManager then
+                        addon.ShowFriendsManager()
+                    end
+                    return
+                end
+
+                if FfaPartyOptionsPanel and FfaPartyOptionsPanel:IsShown() then
+                    FfaPartyOptionsPanel:Hide()
+                else
+                    if FfaPartyOptionsPanel then
+                        FfaPartyOptionsPanel:Show()
+                    end
+                end
+            end,
+            OnTooltipShow = function(tt)
+                if not tt or not tt.AddLine then return end
+                tt:AddLine("FFA Party", 1, 1, 1)
+                tt:AddLine("LMB: Open options", 0.8, 0.8, 0.8)
+                tt:AddLine("Shift + LMB: Manage whitelist/blacklist", 0.8, 0.8, 0.8)
+                tt:AddLine("RMB: Force refresh", 0.8, 0.8, 0.8)
+            end,
+        })
+
+        LDBIcon:Register(addonName, dataobj, FFAPartyDB.minimap)
+        addon.MinimapButton = dataobj
+        FFAPartyMinimapButton = dataobj
         return
     end
 
@@ -21,13 +75,38 @@ function addon.CreateMinimapButton()
     button:SetClampedToScreen(true)
     button:SetClampRectInsets(0, 0, 0, 0)
 
-    -- Border (standard minimap button border)
+    -- -- Border (standard minimap button border)
+    -- local border = button:CreateTexture(nil, "OVERLAY")
+    -- border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+    -- border:SetSize(56, 56)
+    -- border:SetPoint("CENTER", 0, 0)
+
+    --------------------------------------------------------
+    -- Icon (your 64x64 file scaled to 32x32)
+    --------------------------------------------------------
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture("Interface\\AddOns\\FfaParty\\minimap-icon.tga")
+    icon:SetSize(32, 32)
+    icon:SetPoint("CENTER", 0, 0)
+    button.icon = icon
+
+    --------------------------------------------------------
+    -- Blizzard-style border (56x56)
+    --------------------------------------------------------
     local border = button:CreateTexture(nil, "OVERLAY")
     border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
     border:SetSize(56, 56)
     border:SetPoint("CENTER", 0, 0)
 
-    button:SetNormalTexture("Interface\\AddOns\\FfaParty\\minimap-icon.tga")
+    --------------------------------------------------------
+    -- Highlight (fits inside border) 
+    --------------------------------------------------------
+    local hl = button:CreateTexture(nil, "HIGHLIGHT")
+    hl:SetTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
+    hl:SetSize(32, 32)
+    hl:SetPoint("CENTER", 0, 0)
+
+    -- button:SetNormalTexture("Interface\\AddOns\\FfaParty\\minimap-icon.tga")
     button:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight")
 
     local function UpdatePosition()
