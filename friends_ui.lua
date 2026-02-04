@@ -389,13 +389,17 @@ function addon.InitFriendsUI()
 end
 
 function addon.ShowFriendsManager()
-    if not addon.FriendsPanel then
-        if addon.InitFriendsUI then
-            addon.InitFriendsUI()
+    if not FfaPartyOptionsPanel then
+        if addon.CreateOptionsPanel then
+            addon.CreateOptionsPanel()
         end
     end
-    if addon.FriendsPanel then
-        addon.FriendsPanel:Show()
-        addon.FriendsPanel:Raise()
+    if FfaPartyOptionsPanel then
+        FfaPartyOptionsPanel:Show()
+        FfaPartyOptionsPanel:Raise()
+        -- Switch to the Characters tab (tab 3)
+        if FfaPartyOptionsPanel.SelectTab then
+            FfaPartyOptionsPanel.SelectTab(3)
+        end
     end
 end

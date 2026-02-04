@@ -329,12 +329,7 @@ function f:OnEvent(event, ...)
                 addon.DebugPrint("Minimap button created: " .. tostring(minimapButton ~= nil))
             end
 
-            if addon.InitFriendsUI then
-                local friendsPanel = addon.InitFriendsUI()
-                addon.DebugPrint("Friends UI created: " .. tostring(friendsPanel ~= nil))
-            end
-
-            addon.DebugPrint("FFA Party loaded and options/minimap/friends UI initialized")
+            addon.DebugPrint("FFA Party loaded and tabbed options panel initialized")
             addon.DebugPrint("main.lua loaded for " .. addonName)
         end
 
