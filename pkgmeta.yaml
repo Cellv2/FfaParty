@@ -1,3 +1,5 @@
 package-as: FfaParty
+game-version:
+    - 2.5.5
 ignore:
-  - .gitignore
+    - .gitignore
