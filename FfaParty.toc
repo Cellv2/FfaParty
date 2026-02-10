@@ -1,5 +1,6 @@
-## Interface: 11404
-## Version: 0.0.1
+## Interface: 20505
+## Interface-Classic: 20505
+## Version: 1.1.1
 ## Title: FFA Party
 ## Notes: Automatically sets FFA or group loot depending on your party members
 ## Author: Cellv2
