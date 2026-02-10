@@ -3,6 +3,9 @@ local addonName, addon = ...
 
 local f = CreateFrame("Frame")
 
+-- Set to true for verbose debug logging (not exposed in UI)
+local VERBOSE_DEBUG = false
+
 ------------------------------------------------------------
 -- Collect WoW friends
 ------------------------------------------------------------
@@ -206,12 +209,16 @@ local function IsGroupOnlyFriends()
                         -- Check if this unit is on our own Battle.net account first
                         local isOwnBNetChar = IsOnMyBNetAccount(unit)
                         if isOwnBNetChar then
-                            addon.DebugPrint("Character on own Battle.net account: " .. (full or "unknown"))
+                            if VERBOSE_DEBUG then
+                                addon.DebugPrint("Character on own Battle.net account: " .. (full or "unknown"))
+                            end
                         elseif not IsFriend(full, base, whitelist, blacklist, autoFriends) then
                             addon.DebugPrint("Non-friend detected in group: " .. (full or "unknown"))
                             return false
                         else
-                            addon.DebugPrint("Friend matched: " .. (full or "unknown"))
+                            if VERBOSE_DEBUG then
+                                addon.DebugPrint("Friend matched: " .. (full or "unknown"))
+                            end
                         end
                     end
                 end
@@ -227,15 +234,21 @@ end
 ------------------------------------------------------------
 function addon.UpdateLootMethod()
     if not FFAPartyDB.enabled then
-        addon.DebugPrint("Addon disabled; skipping loot enforcement")
+        if VERBOSE_DEBUG then
+            addon.DebugPrint("Addon disabled; skipping loot enforcement")
+        end
         return
     end
     if not IsInGroup() then
-        addon.DebugPrint("Not in group; skipping loot enforcement")
+        if VERBOSE_DEBUG then
+            addon.DebugPrint("Not in group; skipping loot enforcement")
+        end
         return
     end
     if not UnitIsGroupLeader("player") then
-        addon.DebugPrint("Not group leader; skipping loot enforcement")
+        if VERBOSE_DEBUG then
+            addon.DebugPrint("Not group leader; skipping loot enforcement")
+        end
         return
     end
     if IsInRaid() and FFAPartyDB.ignoreRaids then
@@ -358,16 +371,28 @@ end
 -- Debounced friend-list handling
 ------------------------------------------------------------
 local friendUpdatePending = false
+local friendUpdateCount = 0
 local function HandleFriendUpdate()
+    friendUpdateCount = friendUpdateCount + 1
+    
     if friendUpdatePending then
-        addon.DebugPrint("Friend update already pending; skipping")
+        -- Already scheduled, just increment counter
         return
     end
+    
     friendUpdatePending = true
-    addon.DebugPrint("Scheduling friend-list recheck")
-    C_Timer.After(0.5, function()
+    if VERBOSE_DEBUG then
+        addon.DebugPrint("Friend-list event received, scheduling recheck")
+    end
+    
+    C_Timer.After(1.5, function()
+        local eventCount = friendUpdateCount
+        friendUpdateCount = 0
         friendUpdatePending = false
-        addon.DebugPrint("Running friend-list recheck")
+        
+        if VERBOSE_DEBUG then
+            addon.DebugPrint("Running friend-list recheck (" .. eventCount .. " event(s) triggered this)")
+        end
         addon.UpdateLootMethod()
     end)
 end
@@ -403,7 +428,7 @@ function f:OnEvent(event, ...)
         addon.UpdateRaidIcon()
 
     elseif event == "FRIENDLIST_UPDATE" then
-        addon.DebugPrint("Received FRIENDLIST_UPDATE")
+        -- Don't log every FRIENDLIST_UPDATE as it fires very frequently
         HandleFriendUpdate()
 
     elseif event == "BN_FRIEND_ACCOUNT_ONLINE" or event == "BN_FRIEND_ACCOUNT_OFFLINE" then
