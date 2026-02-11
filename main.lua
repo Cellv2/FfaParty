@@ -72,6 +72,11 @@ local function GetMyBNetAccountID()
 end
 
 local function IsOnMyBNetAccount(unit)
+    -- Check if this feature is enabled
+    if not FFAPartyDB or not FFAPartyDB.treatOwnBNetAsEligible then
+        return false
+    end
+    
     if not C_BattleNet or not C_BattleNet.GetGameAccountInfoByGUID then
         return false
     end

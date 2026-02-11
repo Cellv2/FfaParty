@@ -15,6 +15,7 @@ addon.defaults = {
     customBlacklist = {},
     minimap = { hide = false, minimapPos = 45 },
     raidIconFriends = {}, -- map of friendName -> iconIndex (1-8)
+    treatOwnBNetAsEligible = true, -- treat your own Battle.net characters as eligible/friends
 }
 
 ------------------------------------------------------------
