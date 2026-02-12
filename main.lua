@@ -368,6 +368,7 @@ function addon.UpdateRaidIcon()
     -- If setting is enabled and non-friends are present, clear all icons
     if FFAPartyDB.raidMarkersRemoveOnNonFriend and hasNonFriends then
         addon.DebugPrint("Non-friend detected and raidMarkersRemoveOnNonFriend is enabled, clearing all raid icons")
+        SetRaidTarget("player", 0)
         if num > 0 then
             local prefix = "party"
             for i = 1, num do
@@ -381,6 +382,7 @@ function addon.UpdateRaidIcon()
     end
     
     -- Otherwise, clear all raid icons first (in case friends were removed)
+    SetRaidTarget("player", 0)
     if num > 0 then
         local prefix = "party"
         for i = 1, num do
