@@ -15,8 +15,8 @@ local function GetWoWFriends()
         for i = 1, C_FriendList.GetNumFriends() do
             local info = C_FriendList.GetFriendInfoByIndex(i)
             if info and info.name then
-                friends[info.name] = true
-                friends[addon.NormalizeName(info.name)] = true
+                friends[info.name:lower()] = true
+                friends[addon.NormalizeName(info.name):lower()] = true
             end
         end
     end
@@ -35,8 +35,8 @@ local function GetBNetFriends()
             if accountInfo then
                 -- Add Battle.net account name if available
                 if accountInfo.accountName then
-                    friends[accountInfo.accountName] = true
-                    friends[addon.NormalizeName(accountInfo.accountName)] = true
+                    friends[accountInfo.accountName:lower()] = true
+                    friends[addon.NormalizeName(accountInfo.accountName):lower()] = true
                 end
                 
                 -- Add all their game accounts (characters)
@@ -46,8 +46,8 @@ local function GetBNetFriends()
                     
                     if characterName then
                         local full = realmName and (characterName .. "-" .. realmName) or characterName
-                        friends[full] = true
-                        friends[addon.NormalizeName(full)] = true
+                        friends[full:lower()] = true
+                        friends[addon.NormalizeName(full):lower()] = true
                     end
                 end
             end
@@ -110,8 +110,8 @@ local function GetCustomWhitelist()
     local t = {}
     if FFAPartyDB and FFAPartyDB.customWhitelist then
         for _, name in ipairs(FFAPartyDB.customWhitelist) do
-            t[name] = true
-            t[addon.NormalizeName(name)] = true
+            t[name:lower()] = true
+            t[addon.NormalizeName(name):lower()] = true
         end
     end
     return t
@@ -121,8 +121,8 @@ local function GetCustomBlacklist()
     local t = {}
     if FFAPartyDB and FFAPartyDB.customBlacklist then
         for _, name in ipairs(FFAPartyDB.customBlacklist) do
-            t[name] = true
-            t[addon.NormalizeName(name)] = true
+            t[name:lower()] = true
+            t[addon.NormalizeName(name):lower()] = true
         end
     end
     return t
@@ -163,17 +163,17 @@ end
 ------------------------------------------------------------
 local function IsFriend(fullName, baseName, whitelist, blacklist, autoFriends)
     -- blacklist always wins
-    if blacklist[fullName] or blacklist[baseName] then
+    if blacklist[fullName:lower()] or blacklist[baseName:lower()] then
         return false
     end
 
     -- whitelist overrides everything else
-    if whitelist[fullName] or whitelist[baseName] then
+    if whitelist[fullName:lower()] or whitelist[baseName:lower()] then
         return true
     end
 
     -- auto-friends (WoW + BNet)
-    if autoFriends[fullName] or autoFriends[baseName] then
+    if autoFriends[fullName:lower()] or autoFriends[baseName:lower()] then
         return true
     end
 
@@ -353,11 +353,11 @@ function addon.UpdateRaidIcon()
     
     local raidIconFriends = FFAPartyDB.raidIconFriends or {}
     
-    -- Build a table of friends to look for with their normalized names
+    -- Build a table of friends to look for with their normalized names (case-insensitive)
     local friendsToMark = {}
     for friendName, iconIndex in pairs(raidIconFriends) do
-        friendsToMark[friendName] = iconIndex
-        friendsToMark[addon.NormalizeName(friendName)] = iconIndex
+        friendsToMark[friendName:lower()] = iconIndex
+        friendsToMark[addon.NormalizeName(friendName):lower()] = iconIndex
     end
     
     local num = GetNumGroupMembers()
@@ -402,8 +402,8 @@ function addon.UpdateRaidIcon()
                     local full = realm and realm ~= "" and (name .. "-" .. realm) or name
                     local base = addon.NormalizeName(full)
                     
-                    -- Check if this unit matches any of our configured friends
-                    local iconIndex = friendsToMark[full] or friendsToMark[name] or friendsToMark[base]
+                    -- Check if this unit matches any of our configured friends (case-insensitive)
+                    local iconIndex = friendsToMark[full:lower()] or friendsToMark[name:lower()] or friendsToMark[base:lower()]
                     if iconIndex then
                         SetRaidTarget(unit, iconIndex)
                         addon.DebugPrint("Raid icon " .. addon.raidIconNames[iconIndex] .. " set on " .. full)
@@ -418,7 +418,7 @@ function addon.UpdateRaidIcon()
             local playerFull = playerRealm and playerRealm ~= "" and (playerName .. "-" .. playerRealm) or playerName
             local playerBase = addon.NormalizeName(playerFull)
             
-            local iconIndex = friendsToMark[playerFull] or friendsToMark[playerName] or friendsToMark[playerBase]
+            local iconIndex = friendsToMark[playerFull:lower()] or friendsToMark[playerName:lower()] or friendsToMark[playerBase:lower()]
             if iconIndex then
                 SetRaidTarget("player", iconIndex)
                 addon.DebugPrint("Raid icon " .. addon.raidIconNames[iconIndex] .. " set on player")
