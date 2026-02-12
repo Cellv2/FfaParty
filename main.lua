@@ -289,10 +289,58 @@ function addon.UpdateLootMethod()
 end
 
 ------------------------------------------------------------
+-- Check if all group members (excluding self) are friends
+------------------------------------------------------------
+local function AreAllGroupMembersFriends()
+    local autoFriends = {}
+
+    for k in pairs(GetWoWFriends()) do
+        autoFriends[k] = true
+    end
+    for k in pairs(GetBNetFriends()) do
+        autoFriends[k] = true
+    end
+
+    local whitelist = GetCustomWhitelist()
+    local blacklist = GetCustomBlacklist()
+
+    local playerName, playerRealm = UnitName("player")
+    local playerFull = playerRealm and playerRealm ~= "" and (playerName .. "-" .. playerRealm) or playerName
+
+    local num = GetNumGroupMembers()
+    if num > 0 then
+        local prefix = IsInRaid() and "raid" or "party"
+        for i = 1, num do
+            local unit = prefix .. i
+            if UnitExists(unit) then
+                local name, realm = UnitName(unit)
+                if name then
+                    local full = realm and realm ~= "" and (name .. "-" .. realm) or name
+                    if full ~= playerFull then
+                        local base = addon.NormalizeName(full)
+                        
+                        -- Check if this unit is on our own Battle.net account first
+                        local isOwnBNetChar = IsOnMyBNetAccount(unit)
+                        if not isOwnBNetChar and not IsFriend(full, base, whitelist, blacklist, autoFriends) then
+                            return false
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return true
+end
+
+------------------------------------------------------------
 -- Raid icon marking for friends
 ------------------------------------------------------------
 function addon.UpdateRaidIcon()
     if not FFAPartyDB.enabled then
+        return
+    end
+    if not FFAPartyDB.raidMarkersEnabled then
         return
     end
     if IsInRaid() then
@@ -312,8 +360,27 @@ function addon.UpdateRaidIcon()
         friendsToMark[addon.NormalizeName(friendName)] = iconIndex
     end
     
-    -- Clear all raid icons first (in case friends were removed)
     local num = GetNumGroupMembers()
+    
+    -- Check if there are non-friends in the group
+    local hasNonFriends = not AreAllGroupMembersFriends()
+    
+    -- If setting is enabled and non-friends are present, clear all icons
+    if FFAPartyDB.raidMarkersRemoveOnNonFriend and hasNonFriends then
+        addon.DebugPrint("Non-friend detected and raidMarkersRemoveOnNonFriend is enabled, clearing all raid icons")
+        if num > 0 then
+            local prefix = "party"
+            for i = 1, num do
+                local unit = prefix .. i
+                if UnitExists(unit) then
+                    SetRaidTarget(unit, 0)
+                end
+            end
+        end
+        return
+    end
+    
+    -- Otherwise, clear all raid icons first (in case friends were removed)
     if num > 0 then
         local prefix = "party"
         for i = 1, num do

@@ -666,8 +666,29 @@ function addon.CreateOptionsPanel()
     raidMarkersContent:Hide()
     panel.contentFrames[2] = raidMarkersContent
 
+    local raidMarkersHeaderLabel = raidMarkersContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    raidMarkersHeaderLabel:SetPoint("TOPLEFT", leftPad, contentTop + 10)
+    raidMarkersHeaderLabel:SetText("Raid Markers Settings")
+    raidMarkersHeaderLabel:SetTextColor(1, 0.82, 0, 1)
+
+    local raidMarkersEnabledCB = CreateCheckbox(raidMarkersContent, "Enable raid marker system", 0, -10, FFAPartyDB and FFAPartyDB.raidMarkersEnabled,
+        function(self)
+            FFAPartyDB.raidMarkersEnabled = self:GetChecked()
+            if addon.UpdateRaidIcon then
+                addon.UpdateRaidIcon()
+            end
+        end)
+
+    local raidMarkersRemoveNonFriendCB = CreateCheckbox(raidMarkersContent, "Remove marks if non-friend joins", 0, -40, FFAPartyDB and FFAPartyDB.raidMarkersRemoveOnNonFriend,
+        function(self)
+            FFAPartyDB.raidMarkersRemoveOnNonFriend = self:GetChecked()
+            if addon.UpdateRaidIcon then
+                addon.UpdateRaidIcon()
+            end
+        end)
+
     local raidIconLabel = raidMarkersContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    raidIconLabel:SetPoint("TOPLEFT", leftPad, contentTop - 5)
+    raidIconLabel:SetPoint("TOPLEFT", leftPad, contentTop - 80)
     raidIconLabel:SetText("Mark friends with raid icons (when not in raid):")
     raidIconLabel:SetTextColor(1, 1, 1, 1)
 
@@ -690,7 +711,7 @@ function addon.CreateOptionsPanel()
     end
 
     local listBorder = CreateFrame("Frame", nil, raidMarkersContent, "BackdropTemplate")
-    listBorder:SetPoint("TOPLEFT", leftPad, contentTop - 30)
+    listBorder:SetPoint("TOPLEFT", leftPad, contentTop - 110)
     listBorder:SetSize(MAIN_WIDTH - 2 * leftPad, 160)
     listBorder:SetBackdrop({
         bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
