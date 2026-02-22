@@ -57,53 +57,6 @@ local function GetBNetFriends()
 end
 
 ------------------------------------------------------------
--- Check if a unit is on your own Battle.net account
-------------------------------------------------------------
-local myBNetAccountID = nil
-local function GetMyBNetAccountID()
-    if not myBNetAccountID and BNGetInfo then
-        local bnetIDAccount = select(1, BNGetInfo())
-        if bnetIDAccount then
-            myBNetAccountID = bnetIDAccount
-            addon.DebugPrint("My Battle.net account ID: " .. tostring(myBNetAccountID))
-        end
-    end
-    return myBNetAccountID
-end
-
-local function IsOnMyBNetAccount(unit)
-    -- Check if this feature is enabled
-    if not FFAPartyDB or not FFAPartyDB.treatOwnBNetAsEligible then
-        return false
-    end
-    
-    if not C_BattleNet or not C_BattleNet.GetGameAccountInfoByGUID then
-        return false
-    end
-    
-    local myAccountID = GetMyBNetAccountID()
-    if not myAccountID then
-        return false
-    end
-    
-    local guid = UnitGUID(unit)
-    if not guid then
-        return false
-    end
-    
-    local accountInfo = C_BattleNet.GetGameAccountInfoByGUID(guid)
-    if accountInfo and accountInfo.bnetAccountID then
-        local isSameAccount = (accountInfo.bnetAccountID == myAccountID)
-        if isSameAccount then
-            addon.DebugPrint("Unit " .. tostring(unit) .. " is on my Battle.net account")
-        end
-        return isSameAccount
-    end
-    
-    return false
-end
-
-------------------------------------------------------------
 -- Custom whitelist / blacklist
 ------------------------------------------------------------
 local function GetCustomWhitelist()
@@ -211,13 +164,7 @@ local function IsGroupOnlyFriends()
                     if full ~= playerFull then
                         local base = addon.NormalizeName(full)
                         
-                        -- Check if this unit is on our own Battle.net account first
-                        local isOwnBNetChar = IsOnMyBNetAccount(unit)
-                        if isOwnBNetChar then
-                            if VERBOSE_DEBUG then
-                                addon.DebugPrint("Character on own Battle.net account: " .. (full or "unknown"))
-                            end
-                        elseif not IsFriend(full, base, whitelist, blacklist, autoFriends) then
+                        if not IsFriend(full, base, whitelist, blacklist, autoFriends) then
                             addon.DebugPrint("Non-friend detected in group: " .. (full or "unknown"))
                             return false
                         else
@@ -319,9 +266,7 @@ local function AreAllGroupMembersFriends()
                     if full ~= playerFull then
                         local base = addon.NormalizeName(full)
                         
-                        -- Check if this unit is on our own Battle.net account first
-                        local isOwnBNetChar = IsOnMyBNetAccount(unit)
-                        if not isOwnBNetChar and not IsFriend(full, base, whitelist, blacklist, autoFriends) then
+                        if not IsFriend(full, base, whitelist, blacklist, autoFriends) then
                             return false
                         end
                     end

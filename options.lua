@@ -269,16 +269,8 @@ function addon.CreateOptionsPanel()
             end
         end)
 
-    local treatOwnBNetCB = CreateCheckbox(mainContent, "Treat own Battle.net characters as eligible", 0, -160, FFAPartyDB and FFAPartyDB.treatOwnBNetAsEligible,
-        function(self)
-            FFAPartyDB.treatOwnBNetAsEligible = self:GetChecked()
-            if addon.UpdateLootMethod then
-                addon.UpdateLootMethod()
-            end
-        end)
-
     local lootHeader = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootHeader:SetPoint("TOPLEFT", leftPad, contentTop - 200)
+    lootHeader:SetPoint("TOPLEFT", leftPad, contentTop - 160)
     lootHeader:SetText("Loot Rules")
     lootHeader:SetTextColor(1, 0.82, 0, 1)
 
@@ -335,11 +327,11 @@ function addon.CreateOptionsPanel()
     -- Loot with friends
     --------------------------------------------------------
     local lootFriendsLabel = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootFriendsLabel:SetPoint("TOPLEFT", leftPad, contentTop - 230)
+    lootFriendsLabel:SetPoint("TOPLEFT", leftPad, contentTop - 190)
     lootFriendsLabel:SetText("With friends:")
     lootFriendsLabel:SetTextColor(1, 1, 1, 1)
 
-    local lootFriendsDD = CreateDropdown(addonName .. "LootFriendsDD", mainContent, 0, -254,
+    local lootFriendsDD = CreateDropdown(addonName .. "LootFriendsDD", mainContent, 0, -214,
         FFAPartyDB and FFAPartyDB.lootWithFriends or "freeforall", function(value)
             FFAPartyDB.lootWithFriends = value
             if addon.UpdateLootMethod then
@@ -351,11 +343,11 @@ function addon.CreateOptionsPanel()
     -- Loot with others
     --------------------------------------------------------
     local lootOthersLabel = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    lootOthersLabel:SetPoint("TOPLEFT", leftPad, contentTop - 300)
+    lootOthersLabel:SetPoint("TOPLEFT", leftPad, contentTop - 260)
     lootOthersLabel:SetText("With others:")
     lootOthersLabel:SetTextColor(1, 1, 1, 1)
 
-    local lootOthersDD = CreateDropdown(addonName .. "LootOthersDD", mainContent, 0, -324,
+    local lootOthersDD = CreateDropdown(addonName .. "LootOthersDD", mainContent, 0, -284,
         FFAPartyDB and FFAPartyDB.lootWithOthers or "group", function(value)
             FFAPartyDB.lootWithOthers = value
             if addon.UpdateLootMethod then
