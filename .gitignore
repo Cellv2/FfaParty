@@ -42,3 +42,6 @@ luac.out
 *.x86_64
 *.hex
 
+
+# Externals (fetched by the packager)
+Libs/

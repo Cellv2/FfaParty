@@ -1,14 +1,14 @@
-## Interface: 20505
-## Interface-Classic: 20505
-## Version: 1.4.0
+## Interface: 16001
+## Version: 2.0.0-alpha1
 ## Title: FFA Party
 ## Notes: Automatically sets FFA or group loot depending on your party members
 ## Author: Cellv2
 ## SavedVariables: FFAPartyDB, FFAPartyMinimap
 
-Libs/LibStub.lua
-Libs/LibDataBroker-1.1.lua
-Libs/LibDBIcon-1.0.lua
+Libs/LibStub/LibStub.lua
+Libs/CallbackHandler-1.0/CallbackHandler-1.0.lua
+Libs/LibDataBroker-1.1/LibDataBroker-1.1.lua
+Libs/LibDBIcon-1.0/lib.xml
 
 core.lua
 options.lua
