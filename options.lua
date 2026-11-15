@@ -186,8 +186,7 @@ function addon.CreateOptionsPanel()
     end
     
     CreateTab(1, "Main Options")
-    CreateTab(2, "Raid Markers")
-    CreateTab(3, "Filters")
+    CreateTab(2, "Filters")
 
     panel.SelectTab = SelectTab
 
@@ -362,7 +361,7 @@ function addon.CreateOptionsPanel()
     charactersContent:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -70)
     charactersContent:SetSize(MAIN_WIDTH - 24, MAIN_HEIGHT - 110)
     charactersContent:Hide()
-    panel.contentFrames[3] = charactersContent
+    panel.contentFrames[2] = charactersContent
 
     -- Characters tab info
     local charInfo = charactersContent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -648,117 +647,6 @@ function addon.CreateOptionsPanel()
 
     -- Show on tab select
     panel.RefreshCharLists = RefreshCharLists
-
-    --------------------------------------------------------
-    -- TAB 3: RAID MARKERS
-    --------------------------------------------------------
-    local raidMarkersContent = CreateFrame("Frame", nil, panel)
-    raidMarkersContent:SetPoint("TOPLEFT", panel, "TOPLEFT", 0, -70)
-    raidMarkersContent:SetSize(MAIN_WIDTH - 24, MAIN_HEIGHT - 110)
-    raidMarkersContent:Hide()
-    panel.contentFrames[2] = raidMarkersContent
-
-    local raidMarkersHeaderLabel = raidMarkersContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    raidMarkersHeaderLabel:SetPoint("TOPLEFT", leftPad, contentTop + 10)
-    raidMarkersHeaderLabel:SetText("Raid Markers Settings")
-    raidMarkersHeaderLabel:SetTextColor(1, 0.82, 0, 1)
-
-    local raidMarkersEnabledCB = CreateCheckbox(raidMarkersContent, "Enable raid marker system", 0, -10, FFAPartyDB and FFAPartyDB.raidMarkersEnabled,
-        function(self)
-            FFAPartyDB.raidMarkersEnabled = self:GetChecked()
-            if addon.UpdateRaidIcon then
-                addon.UpdateRaidIcon()
-            end
-        end)
-
-    local raidMarkersRemoveNonFriendCB = CreateCheckbox(raidMarkersContent, "Remove marks if non-friend joins", 0, -40, FFAPartyDB and FFAPartyDB.raidMarkersRemoveOnNonFriend,
-        function(self)
-            FFAPartyDB.raidMarkersRemoveOnNonFriend = self:GetChecked()
-            if addon.UpdateRaidIcon then
-                addon.UpdateRaidIcon()
-            end
-        end)
-
-    local raidIconLabel = raidMarkersContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    raidIconLabel:SetPoint("TOPLEFT", leftPad, contentTop - 80)
-    raidIconLabel:SetText("Mark friends with raid icons (when not in raid):")
-    raidIconLabel:SetTextColor(1, 1, 1, 1)
-
-    -- Table of raid icons with input fields
-    local iconInputs = {}
-    local function UpdateRaidIconInput(iconIndex, friendName)
-        -- Clear all raid icon friends and rebuild from current input values
-        FFAPartyDB.raidIconFriends = {}
-        for i = 1, 8 do
-            local input = iconInputs[i]
-            local newName = input:GetText():gsub("^%s+", ""):gsub("%s+$", "")
-            if newName and newName ~= "" then
-                FFAPartyDB.raidIconFriends[newName] = i
-            end
-        end
-        -- Apply raid icons immediately to current group
-        if addon.UpdateRaidIcon then
-            addon.UpdateRaidIcon()
-        end
-    end
-
-    local listBorder = CreateFrame("Frame", nil, raidMarkersContent, "BackdropTemplate")
-    listBorder:SetPoint("TOPLEFT", leftPad, contentTop - 110)
-    listBorder:SetSize(MAIN_WIDTH - 2 * leftPad, 160)
-    listBorder:SetBackdrop({
-        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true,
-        tileSize = 16,
-        edgeSize = 12,
-        insets = { left = 3, right = 3, top = 3, bottom = 3 }
-    })
-    listBorder:SetBackdropColor(0, 0, 0, 0.4)
-    listBorder:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
-
-    local raidIconList = CreateFrame("Frame", nil, raidMarkersContent)
-    raidIconList:SetSize(MAIN_WIDTH - 2 * leftPad - 30, 150)
-    raidIconList:SetPoint("TOPLEFT", listBorder, 6, -6)
-
-    for i = 8, 1, -1 do
-        -- Icon name label
-        local iconNameLabel = raidIconList:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        iconNameLabel:SetPoint("TOPLEFT", 0, -(8 - i) * 18)
-        iconNameLabel:SetSize(90, 18)
-        iconNameLabel:SetJustifyH("LEFT")
-        iconNameLabel:SetText(addon.raidIconNames[i])
-        iconNameLabel:SetTextColor(0.9, 0.9, 0.9, 1)
-
-        -- Input field for player name
-        local input = CreateFrame("EditBox", nil, raidIconList, "InputBoxTemplate")
-        input:SetSize(130, 18)
-        input:SetPoint("LEFT", iconNameLabel, "RIGHT", 10, 0)
-        input:SetAutoFocus(false)
-        input:SetFontObject("GameFontHighlightSmall")
-        
-        -- Load existing value
-        local existingName = nil
-        for friendName, iconIdx in pairs(FFAPartyDB.raidIconFriends or {}) do
-            if iconIdx == i then
-                existingName = friendName
-                break
-            end
-        end
-        if existingName then
-            input:SetText(existingName)
-        end
-
-        -- Save on edit
-        input:SetScript("OnEditFocusLost", function(self)
-            UpdateRaidIconInput(i, nil)
-        end)
-        input:SetScript("OnEnterPressed", function(self)
-            UpdateRaidIconInput(i, nil)
-            self:ClearFocus()
-        end)
-
-        iconInputs[i] = input
-    end
 
     --------------------------------------------------------
     -- Footer hint

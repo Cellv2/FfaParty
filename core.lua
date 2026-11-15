@@ -14,9 +14,6 @@ addon.defaults = {
     customWhitelist = {},
     customBlacklist = {},
     minimap = { hide = false, minimapPos = 45 },
-    raidIconFriends = {}, -- map of friendName -> iconIndex (1-8)
-    raidMarkersEnabled = true, -- enable/disable raid marker system
-    raidMarkersRemoveOnNonFriend = false, -- remove markers if non-friend joins
 }
 
 ------------------------------------------------------------
@@ -69,19 +66,5 @@ function addon.NormalizeLootMethod(method)
     end
     return method
 end
-
-------------------------------------------------------------
--- Raid icon helpers
-------------------------------------------------------------
-addon.raidIconNames = {
-    [1] = "Star",
-    [2] = "Circle",
-    [3] = "Diamond",
-    [4] = "Triangle",
-    [5] = "Moon",
-    [6] = "Square",
-    [7] = "Cross",
-    [8] = "Skull",
-}
 
 addon.DebugPrint("core.lua loaded")
