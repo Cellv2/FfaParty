@@ -39,14 +39,29 @@ function addon.InitializeDB()
 end
 
 ------------------------------------------------------------
--- Utility: normalize names (strip realm if present)
+-- Utility: normalize Forever's first and last names for matching
 ------------------------------------------------------------
 function addon.NormalizeName(name)
     if not name then
         return nil
     end
-    local base = name:match("^(.-)%-.+$")
-    return base or name
+    return name:match("^%s*(.-)%s*$"):gsub("%s+", "-"):lower()
+end
+
+function addon.UnitCharacterName(unit)
+    local name, surname = (UnitNameUnmodified or UnitName)(unit)
+    if not name or (issecretvalue and (issecretvalue(name) or (surname and issecretvalue(surname)))) then
+        return nil
+    end
+    name = addon.NormalizeName(name)
+    if surname and surname ~= "" then
+        surname = addon.NormalizeName(surname)
+        local suffix = "-" .. surname
+        if name:sub(-#suffix) ~= suffix then
+            name = name .. suffix
+        end
+    end
+    return name
 end
 
 ------------------------------------------------------------

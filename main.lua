@@ -92,19 +92,17 @@ local function GetGroupMembers()
         for i = 1, num do
             local unit = prefix .. i
             if UnitExists(unit) then
-                local name, realm = UnitName(unit)
+                local name = addon.UnitCharacterName(unit)
                 if name then
-                    local full = realm and realm ~= "" and (name .. "-" .. realm) or name
-                    table.insert(members, full)
+                    table.insert(members, name)
                 end
             end
         end
         -- In parties, player may not be in party1..n
         if not IsInRaid() then
-            local name, realm = UnitName("player")
+            local name = addon.UnitCharacterName("player")
             if name then
-                local full = realm and realm ~= "" and (name .. "-" .. realm) or name
-                table.insert(members, full)
+                table.insert(members, name)
             end
         end
     end
@@ -149,8 +147,7 @@ local function IsGroupOnlyFriends()
     local whitelist = GetCustomWhitelist()
     local blacklist = GetCustomBlacklist()
 
-    local playerName, playerRealm = UnitName("player")
-    local playerFull = playerRealm and playerRealm ~= "" and (playerName .. "-" .. playerRealm) or playerName
+    local playerFull = addon.UnitCharacterName("player")
 
     local num = GetNumGroupMembers()
     if num > 0 then
@@ -158,9 +155,8 @@ local function IsGroupOnlyFriends()
         for i = 1, num do
             local unit = prefix .. i
             if UnitExists(unit) then
-                local name, realm = UnitName(unit)
-                if name then
-                    local full = realm and realm ~= "" and (name .. "-" .. realm) or name
+                local full = addon.UnitCharacterName(unit)
+                if full then
                     if full ~= playerFull then
                         local base = addon.NormalizeName(full)
                         
